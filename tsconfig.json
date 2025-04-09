@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "es2022",
+    "lib": [
+      // for promises and arrays
+      "es2023",
+      // for DOM types
+      "dom"
+    ],
+    "downlevelIteration": true,
+    "outDir": "build",
+    "rootDir": "src",
+    "sourceMap": true
+  }
+}
