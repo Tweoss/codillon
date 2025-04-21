@@ -1,7 +1,23 @@
+import { get_nodes } from "./lib.js";
+import Line from "./line.js";
+import LineNumber from "./line_number.js";
+
+const DEFAULTS = { margin_width: 62 };
+
 const template = document.createElement("template");
 template.innerHTML = `
+  <style>
+    #line-numbers, #lines {
+      position: absolute;
+    }
+  </style>
   <div>Helloo <span id="name">world</span>!</div>
   <div id="editor">
+    <!-- Design taken from Monaco Editor -->
+    <div id="line-numbers" style="width:${DEFAULTS.margin_width}px;">
+    </div>
+    <div id="lines" style="left:${DEFAULTS.margin_width}px;">
+    </div>
   </div>
 `;
 
@@ -12,19 +28,19 @@ function clone() {
 function init() {
   /* DOM variables */
   let frag = clone();
-  let nameNode = frag.querySelector("#name");
-  let editorNode = frag.querySelector("#editor");
+  let elements = ["name", "editor", "line-numbers", "lines"] as const;
+
+  let nodes = get_nodes(frag, elements);
 
   /* State variables */
   let name: string;
-  let nodes: DocumentFragment[] = [];
+  let line_height: number;
+  let margin_width: number;
+  let lines: ReturnType<typeof Line>[] = [];
 
   /* DOM update functions */
   function setNameNode(value: string) {
-    nameNode.textContent = value;
-  }
-  function setChildrenNodes(children: DocumentFragment[]) {
-    editorNode.replaceChildren(...children);
+    nodes.name.textContent = value;
   }
 
   /* State update functions */
@@ -33,9 +49,6 @@ function init() {
       name = value;
       setNameNode(value);
     }
-  }
-  function setChildren(children: DocumentFragment[]) {
-    setChildrenNodes(children);
   }
 
   /* State logic */
@@ -46,11 +59,18 @@ function init() {
 
   /* Initialization */
 
-  function update(data: { name?: string; children?: DocumentFragment[] } = {}) {
+  function update(data: { name?: string } = {}) {
     if (data.name) setName(data.name);
-    if (data.children) setChildren(data.children);
     return frag;
   }
+
+  function addLine() {
+    lines.push(Line());
+    nodes.lines.appendChild(lines.at(-1)!());
+    nodes["line-numbers"].appendChild(LineNumber(lines.length)!());
+  }
+
+  addLine();
 
   return update;
 }
