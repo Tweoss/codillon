@@ -4,7 +4,7 @@ export async function init() {
   const main = document.querySelector("main");
   const editor = Editor();
 
-  main!.appendChild(editor({ name: "world" }));
+  main!.appendChild(editor);
 }
 
 type Nodes<T> = T extends readonly string[]
