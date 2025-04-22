@@ -1,6 +1,6 @@
 import { get_nodes } from "./lib.js";
 import createLineNumber from "./line_number.js";
-import createLine from "./line.js"; // Component for a line
+import createLine, { Line } from "./line.js"; // Component for a line
 
 const DEFAULTS = { margin_width: 62 };
 
@@ -40,7 +40,7 @@ template.innerHTML = `
   <div>Helloo <span id="name">world</span>!</div>
   <div id="editor-container">
     <div id="line-numbers" style="width:${DEFAULTS.margin_width}px;"></div>
-    <div id="content-editor" style="left:${DEFAULTS.margin_width}px;" contenteditable="true"></div>
+    <div id="content-editor" style="left:${DEFAULTS.margin_width}px;"></div>
   </div>
 `;
 
@@ -50,86 +50,63 @@ function cloneTemplate() {
 
 function createEditor() {
   const frag = cloneTemplate();
-  const nodes = get_nodes(frag, ["line-numbers", "content-editor", "name"] as const);
+  const nodes = get_nodes(frag, [
+    "line-numbers",
+    "content-editor",
+    "name",
+  ] as const);
   const lineNumbersContainer = nodes["line-numbers"] as HTMLDivElement;
   const contentEditor = nodes["content-editor"] as HTMLDivElement;
 
+  /* State variables. */
+  let lines: Line[] = [];
+
   function updateLineNumbers(): void {
-    const lines = contentEditor.querySelectorAll('.line').length;
+    const lines = contentEditor.querySelectorAll(".line").length;
     lineNumbersContainer.innerHTML = Array.from(
-        {length: lines},
-        (_, i) => i + 1
-    ).join('<br>');
+      { length: lines },
+      (_, i) => i + 1,
+    ).join("<br>");
   }
 
-  function addNewLine(text: string = '', referenceLine?: HTMLDivElement): HTMLDivElement {
-    const lineFrag = createLine();
-    const lineDOM = lineFrag({ content: text });
-    const line = lineDOM.firstElementChild as HTMLDivElement;
-    line.addEventListener('keydown', handleKeyDown);
-    if (referenceLine) {
-      contentEditor.insertBefore(line, referenceLine.nextSibling);
-    } else {
-      contentEditor.appendChild(line);
-    }
-    updateLineNumbers();
-    return line;
-  }
-
-  function getCurrentLine(): HTMLDivElement | null {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return null;
-    const node = selection.anchorNode;
-    if (node instanceof HTMLElement) {
-      return node.closest('.line') as HTMLDivElement;
-    } else if (node instanceof Text && node.parentElement) {
-      return node.parentElement.closest('.line') as HTMLDivElement;
-    }
-    return null;
-  }
-
-  function handleKeyDown(e: KeyboardEvent): void {
-    const line = getCurrentLine();
-    if (!line) return;
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleEnterKey(line);
-    } else if (e.key === 'Backspace' && line.textContent?.length === 0) {
-      e.preventDefault();
-      handleBackspaceOnEmptyLine(line);
-    }
-    updateLineNumbers();
-  }
-
-  function handleEnterKey(line: HTMLDivElement): void {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    const range = selection.getRangeAt(0);
-    const text = line.textContent || '';
-    const caretOffset = range.startOffset;
-    const newLine = addNewLine(text.slice(caretOffset), line);
-    line.textContent = text.slice(0, caretOffset);
-    requestAnimationFrame(() => {
-      const newRange = document.createRange();
-      newRange.selectNodeContents(newLine);
-      newRange.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(newRange);
-    });
-  }
-
-  async function handleBackspaceOnEmptyLine(line: HTMLDivElement): Promise<void> {
-    const prevLine = line.previousElementSibling as HTMLDivElement;
+  async function handleBackspaceOnEmptyLine(line: Line): Promise<void> {
+    const prevLine = line().div.previousElementSibling as HTMLDivElement;
     if (!prevLine) return;
     if (prevLine.textContent) {
-      prevLine.textContent += line.textContent;
+      prevLine.textContent += line().div.textContent;
     }
-    line.remove();
+    // Always make sure at least one line.
+    if (lines.length > 1) {
+      line().div.remove();
+      const index = lines.findIndex((l) => l == line);
+      const next_index = index - 1 < 0 ? 0 : index - 1;
+      if (next_index < lines.length) {
+        // Refocus on the previous line.
+        lines[next_index]({ focus: true });
+      }
+      lines.splice(index, 1);
+      updateLineNumbers();
+    }
   }
 
-  contentEditor.addEventListener('keydown', handleKeyDown);
-  contentEditor.addEventListener('input', updateLineNumbers);
-  contentEditor.addEventListener('scroll', () => {
+  function addNewLine(referenceLine?: Line) {
+    const line = createLine({
+      addNewLine,
+      deleteLine: handleBackspaceOnEmptyLine,
+    });
+    const lineDOM = line({ content: "" }).frag;
+    if (referenceLine) {
+      contentEditor.insertBefore(lineDOM, referenceLine().div.nextSibling);
+    } else {
+      contentEditor.appendChild(lineDOM);
+    }
+    // Focus after appending to DOM.
+    line({ focus: true });
+    lines.push(line);
+    updateLineNumbers();
+  }
+
+  contentEditor.addEventListener("scroll", () => {
     lineNumbersContainer.scrollTop = contentEditor.scrollTop;
   });
   contentEditor.focus();
@@ -138,8 +115,11 @@ function createEditor() {
     for (const mutation of mutations) {
       for (const node of Array.from(mutation.addedNodes)) {
         if (node.nodeType === Node.TEXT_NODE) {
-          if (node.parentElement && !node.parentElement.classList.contains('line')) {
-            const line = node.parentElement.closest('.line');
+          if (
+            node.parentElement &&
+            !node.parentElement.classList.contains("line")
+          ) {
+            const line = node.parentElement.closest(".line");
             if (line) {
               line.appendChild(node);
             }
@@ -149,7 +129,7 @@ function createEditor() {
     }
   }).observe(contentEditor, { childList: true, subtree: true });
 
-  if (!contentEditor.querySelector('.line')) {
+  if (lines.length == 0) {
     addNewLine();
   }
   updateLineNumbers();
