@@ -3,6 +3,7 @@
 # Developing
 
 For best experience, install
+
 - just: https://just.systems/man/en/introduction.html
   - run commands from a recipe file
 - tsc: https://www.typescriptlang.org/download/ (installable via npm)
@@ -11,6 +12,10 @@ For best experience, install
   - run build command save
 - penguin: https://github.com/LukasKalbertodt/penguin
   - hot reloading of webpage
+- npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+  - manage some dependencies (see [./package.json](./package.json))
+
+Run `npm install` to get `tsc` and `prettier`.
 
 For developing, start both `just watch` and `just serve` in some terminals.
 Open the `just serve` URL in a browser.
