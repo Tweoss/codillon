@@ -4,5 +4,8 @@
   },
   "devDependencies": {
     "prettier": "3.5.3"
+  },
+  "scripts": {
+    "preinstall": "git config core.hooksPath .githooks/"
   }
 }
