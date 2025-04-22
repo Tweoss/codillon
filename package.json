@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "tsc": "^2.0.4"
+  },
+  "devDependencies": {
+    "prettier": "3.5.3"
   }
 }
