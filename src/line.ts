@@ -1,6 +1,8 @@
+import { get_nodes } from "./lib.js";
+
 const template = document.createElement("template");
 template.innerHTML = `
-  <span id="line-text">Helloo I'm a line!</span>
+  <div class="line" contenteditable="true" spellcheck="false"></div>
 `;
 
 function clone() {
@@ -10,14 +12,14 @@ function clone() {
 function init() {
   /* DOM variables */
   let frag = clone();
-  let textNode = frag.querySelector("#line-text");
+  const lineElement = frag.querySelector('.line') as HTMLDivElement; // Select by class
 
   /* State variables */
   let text: string;
 
   /* DOM update functions */
   function setTextNode(value: string) {
-    textNode.textContent = value;
+    lineElement.textContent = value; // Use the element directly
   }
 
   /* State update functions */
@@ -36,8 +38,10 @@ function init() {
 
   /* Initialization */
 
-  function update(data: { name?: string; children?: DocumentFragment[] } = {}) {
-    if (data.name) setName(data.name);
+  function update(
+    data: { content?: string; children?: DocumentFragment[] } = {},
+  ) {
+    if (data.content) setName(data.content);
     return frag;
   }
 

@@ -1,16 +1,29 @@
 import Editor from "./editor.js";
-import Line from "./line.js";
 
 export async function init() {
   const main = document.querySelector("main");
   const editor = Editor();
 
-  main.appendChild(editor({ name: "world" }));
+  main!.appendChild(editor);
+}
 
-  setTimeout(() => {
-    const lines = [0, 0].map((_) => Line());
-    editor({ children: lines.map((l) => l()) });
-  }, 1000);
+type Nodes<T> = T extends readonly string[]
+  ? T[number] extends string
+    ? { [K in T[number]]: HTMLElement }
+    : never
+  : never;
+export function get_nodes<T extends readonly string[]>(
+  fragment: DocumentFragment,
+  elements: T,
+): Nodes<T> {
+  let nodes: Nodes<T> = elements.reduce(
+    (prev, current) => ({
+      ...prev,
+      [current]: fragment.querySelector("#" + current),
+    }),
+    {},
+  ) as Nodes<T>;
+  return nodes;
 }
 
 init();
