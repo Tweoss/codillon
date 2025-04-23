@@ -1,4 +1,7 @@
-import { get_nodes } from "./lib.js";
+import createAutocomplete, {
+  Autocomplete,
+  listCompletions,
+} from "./autocomplete.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -23,6 +26,7 @@ function init({
   /* DOM variables */
   let frag = clone();
   const lineElement = frag.querySelector(".line") as HTMLDivElement; // Select by class
+  let autocomplete: Autocomplete | null = null;
 
   /* State variables */
   let text: string;
@@ -33,7 +37,7 @@ function init({
   }
 
   /* State update functions */
-  function setName(value: string) {
+  function setContent(value: string) {
     if (text !== value) {
       text = value;
       setTextNode(value);
@@ -57,6 +61,33 @@ function init({
       lineElement.classList.add("error");
     } else {
       lineElement.classList.remove("error");
+    }
+    const completions = listCompletions(lineElement.innerText);
+    if (completions.length > 0) {
+      // Get cursor position, add autocomplete box
+      console.log("have completions", completions.length);
+
+      const range = window.getSelection()?.getRangeAt(0);
+      if (!range) return;
+      const rect = range.getBoundingClientRect();
+      console.log(rect);
+      if (!autocomplete) {
+        autocomplete = createAutocomplete({
+          onSelect: (s) => console.log("selected", s),
+        });
+        let frag = autocomplete({
+          list: completions,
+        });
+        document.body.appendChild(frag);
+      }
+      autocomplete({
+        position: { clientLeft: rect.left, clientBottom: rect.bottom },
+      });
+      console.log("set autocomplete pos");
+      // range.getBoundingClientRect()
+    } else {
+      // Remove
+      // autocomplete();
     }
   }
 
@@ -87,7 +118,7 @@ function init({
   /* Initialization */
 
   function update(data: { content?: string; focus?: boolean } = {}) {
-    if (data.content) setName(data.content);
+    if (data.content) setContent(data.content);
     if (data.focus !== undefined) {
       if (data.focus) {
         // Set focus to the end of this line.
