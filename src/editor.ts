@@ -13,7 +13,7 @@ template.innerHTML = `
       font-family: monospace;
       height: 300px;
       margin: 20px;
-      overflow: hidden;
+      overflow-y: auto;
     }
     #line-numbers {
       background: #f0f0f0;
@@ -21,14 +21,12 @@ template.innerHTML = `
       text-align: right;
       user-select: none;
       line-height: 1.2em;
-      overflow-y: hidden;
       display: block;
     }
     #content-editor {
       flex: 1;
       padding: 10px;
       outline: none;
-      overflow-y: auto;
       white-space: pre;
       line-height: 1.2em;
       background: white;
@@ -39,7 +37,8 @@ template.innerHTML = `
   </style>
   <div>Helloo <span id="name">world</span>!</div>
   <div id="editor-container">
-    <div id="line-numbers" style="width:${DEFAULTS.margin_width}px;"></div>
+    <!-- wrapper div allows us to get around no background in overflow -->
+    <div><div id="line-numbers" style="width:${DEFAULTS.margin_width}px;"></div></div>
     <div id="content-editor" style="left:${DEFAULTS.margin_width}px;"></div>
   </div>
 `;
@@ -69,7 +68,7 @@ function createEditor() {
     ).join("<br>");
   }
 
-  async function handleBackspaceOnEmptyLine(line: Line): Promise<void> {
+  function handleBackspaceOnEmptyLine(line: Line) {
     const prevLine = line().div.previousElementSibling as HTMLDivElement;
     if (!prevLine) return;
     if (prevLine.textContent) {
@@ -79,10 +78,10 @@ function createEditor() {
     if (lines.length > 1) {
       line().div.remove();
       const index = lines.findIndex((l) => l == line);
-      const next_index = index - 1 < 0 ? 0 : index - 1;
-      if (next_index < lines.length) {
+      const prev_index = index - 1 < 0 ? 0 : index - 1;
+      if (prev_index < lines.length) {
         // Refocus on the previous line.
-        lines[next_index]({ focus: true });
+        lines[prev_index]({ focus: true });
       }
       lines.splice(index, 1);
       updateLineNumbers();
@@ -106,33 +105,13 @@ function createEditor() {
     updateLineNumbers();
   }
 
-  contentEditor.addEventListener("scroll", () => {
-    lineNumbersContainer.scrollTop = contentEditor.scrollTop;
+  /* Initialization */
+  addNewLine();
+  // Seems like we need delay after page is loaded before focusing.
+  requestAnimationFrame(() => {
+    lines[0]({ focus: true });
   });
-  contentEditor.focus();
 
-  new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      for (const node of Array.from(mutation.addedNodes)) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          if (
-            node.parentElement &&
-            !node.parentElement.classList.contains("line")
-          ) {
-            const line = node.parentElement.closest(".line");
-            if (line) {
-              line.appendChild(node);
-            }
-          }
-        }
-      }
-    }
-  }).observe(contentEditor, { childList: true, subtree: true });
-
-  if (lines.length == 0) {
-    addNewLine();
-  }
-  updateLineNumbers();
   return frag;
 }
 
