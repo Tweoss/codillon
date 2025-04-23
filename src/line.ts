@@ -1,15 +1,13 @@
 import { get_nodes } from "./lib.js";
 
 const template = document.createElement("template");
-template.innerHTML = `\
-<style>
+template.innerHTML = `<style>
   .error {
     text-decoration: underline;
     text-decoration-color: red;
+    text-decoration-style: wavy;
   }
-</style>\
-<div class="line" contenteditable="true" spellcheck="false"></div>
-`;
+</style><div class="line" contenteditable="true" spellcheck="false"></div>`;
 
 function clone() {
   return document.importNode(template.content, true);
@@ -66,10 +64,10 @@ function init({
     if (!lineElement.innerText.startsWith("i32.const")) {
       lineElement.animate(
         [
-          { transform: "translate2D(0%, 0%)" },
-          { transform: "translate2D(-2pt, 0%)" },
-          { transform: "translate2D(2pt, 0%)" },
-          { transform: "translate2D(0%, 0%)" },
+          { transform: "translate3d(0, 0, 0)" },
+          { transform: "translate3d(-2pt, 0, 0)" },
+          { transform: "translate3d(2pt, 0, 0)" },
+          { transform: "translate3d(0, 0, 0)" },
         ],
         {
           duration: 100,
