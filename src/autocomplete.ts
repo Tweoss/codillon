@@ -1,11 +1,10 @@
+import { syntaxList } from "./syntax.constants.js";
 export function listCompletions(prefix: string): string[] {
   return syntaxList.filter((syntax) => syntax.startsWith(prefix));
 }
 export function checkValidSyntax(text: string): boolean { 
 	return syntaxList.some((syntax) => syntax === text);
 }
-
-const syntaxList = ["i32.const", "i32.add", "i32.sub", "i32.mul", "f32.const", "f32.add", "f32.sub", "f32.mul"];
 
 // Placeholder
 const autoCompletIcon = document.createElement("template");
@@ -111,7 +110,7 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
     if (data.list) {
       completions = data.list;
       listElements.innerHTML = "";
-      data.list.forEach((item) => {
+      data.list.slice(0, 10).forEach((item) => {
         const li = document.createElement("li");
         li.textContent = item;
 				li.addEventListener("mousedown", () => onSelect(item));
