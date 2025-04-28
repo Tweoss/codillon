@@ -1,16 +1,30 @@
 import createAutocomplete, {
   Autocomplete,
   listCompletions,
+  checkValidSyntax,
 } from "./autocomplete.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
+  .line {
+    display: flex;
+    gap: 4px;
+    min-height: 1.2em;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: red;
+  }
+  .container {
+    width: fit-conent;
+  }
+  .empty {
+    width: 100%;
+  }
   .error {
     text-decoration: underline;
     text-decoration-color: red;
     text-decoration-style: wavy;
   }
-</style><div class="line" contenteditable="true" spellcheck="false"></div>`;
+</style><div class="line"><div class="container empty" contenteditable="plaintext-only" spellcheck="false"></div></div>`;
 
 function clone() {
   return document.importNode(template.content, true);
@@ -25,15 +39,35 @@ function init({
 }) {
   /* DOM variables */
   let frag = clone();
-  const lineElement = frag.querySelector(".line") as HTMLDivElement; // Select by class
+  const lineElement = frag.querySelector(".line") as HTMLDivElement;
+  const lineContainerElement = frag.querySelector(".line .container") as HTMLDivElement;
   let autocomplete: Autocomplete | null = null;
+  let completions = [] as string[];
 
   /* State variables */
   let text: string;
 
   /* DOM update functions */
   function setTextNode(value: string) {
-    lineElement.textContent = value; // Use the element directly
+    lineContainerElement.textContent = value; // Use the element directly
+  }
+  function addAutocomplete(completions: string[]): void {
+    removeAutocomplete();
+    autocomplete = createAutocomplete({
+      onSelect: (s) => {
+        setContent(s);
+        moveCursorToEnd();
+      },
+    });
+    const autoFrag = autocomplete({ list: completions });
+    lineElement.appendChild(autoFrag);
+  }
+  function removeAutocomplete(): void {
+    const autoEl = lineElement.querySelector(".autocomplete-container");
+    if (autoEl) {
+      autoEl.remove();
+    }
+    autocomplete = null;
   }
 
   /* State update functions */
@@ -43,8 +77,29 @@ function init({
       setTextNode(value);
     }
   }
-
   /* State logic */
+  function moveCursorToEnd() {
+    const range = document.createRange();
+    range.selectNodeContents(lineContainerElement);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }
+  function completionError() {
+    lineElement.animate(
+      [
+        { transform: "translate3d(0, 0, 0)" },
+        { transform: "translate3d(-2pt, 0, 0)" },
+        { transform: "translate3d(2pt, 0, 0)" },
+        { transform: "translate3d(0, 0, 0)" },
+      ],
+      {
+        duration: 100,
+        iterations: 2,
+      },
+    );
+  }
 
   /* Event dispatchers */
   function handleKeyDown(e: KeyboardEvent): void {
@@ -54,59 +109,42 @@ function init({
     } else if (e.key === "Backspace" && lineElement.textContent?.length === 0) {
       e.preventDefault();
       deleteLine(update);
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      completions = listCompletions(lineContainerElement.innerText);
+      if (lineContainerElement.innerText && completions.length > 0) {
+        setContent(completions[0]);
+        moveCursorToEnd();
+      } else {
+        completionError();
+      }
     }
   }
   function handleInput() {
-    if (!lineElement.innerText.startsWith("i32.const")) {
+    const value = lineContainerElement.innerText;
+    value ? lineContainerElement.classList.remove("empty") : lineContainerElement.classList.add("empty");
+    if (!value.startsWith("i32.const")) {
       lineElement.classList.add("error");
     } else {
       lineElement.classList.remove("error");
     }
-    const completions = listCompletions(lineElement.innerText);
+    completions = listCompletions(value);
     if (completions.length > 0) {
-      // Get cursor position, add autocomplete box
-      console.log("have completions", completions.length);
-
-      const range = window.getSelection()?.getRangeAt(0);
-      if (!range) return;
-      const rect = range.getBoundingClientRect();
-      console.log(rect);
       if (!autocomplete) {
-        autocomplete = createAutocomplete({
-          onSelect: (s) => console.log("selected", s),
-        });
-        let frag = autocomplete({
-          list: completions,
-        });
-        document.body.appendChild(frag);
+        addAutocomplete(completions);
+      } else {
+        autocomplete({ list: completions });
       }
-      autocomplete({
-        position: { clientLeft: rect.left, clientBottom: rect.bottom },
-      });
-      console.log("set autocomplete pos");
-      // range.getBoundingClientRect()
     } else {
-      // Remove
-      // autocomplete();
+      removeAutocomplete();
     }
   }
 
   function handleEnterKey(): void {
-    if (!lineElement.innerText.startsWith("i32.const")) {
-      lineElement.animate(
-        [
-          { transform: "translate3d(0, 0, 0)" },
-          { transform: "translate3d(-2pt, 0, 0)" },
-          { transform: "translate3d(2pt, 0, 0)" },
-          { transform: "translate3d(0, 0, 0)" },
-        ],
-        {
-          duration: 100,
-          iterations: 2,
-        },
-      );
-    } else {
+    if (checkValidSyntax(lineContainerElement.innerText)) {
       addNewLine(update);
+    } else {
+      completionError();
     }
   }
 
@@ -114,6 +152,13 @@ function init({
 
   lineElement.addEventListener("keydown", handleKeyDown);
   lineElement.addEventListener("input", handleInput);
+  lineElement.addEventListener("focusout", () => {
+    setTimeout(() => {
+      if (!lineElement.contains(document.activeElement)) {
+        removeAutocomplete();
+      }
+    }, 0);
+  });
 
   /* Initialization */
 
@@ -137,5 +182,4 @@ function init({
 }
 
 export default init;
-
 export type Line = ReturnType<typeof init>;
