@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer-core";
+import puppeteer, { Page } from "puppeteer-core";
 import { assert_b, assert_eq, passed } from "./lib.ts";
 
 async function main() {
@@ -35,7 +35,7 @@ async function main() {
 main();
 
 // We should be able to enter two lines.
-async function test_enter(page: puppeteer.Page) {
+async function test_enter(page: Page) {
   await page.type(".line", "i32.const 1");
   await page.keyboard.press("Enter");
   await (await page.evaluateHandle(() => document.activeElement))
@@ -46,7 +46,9 @@ async function test_enter(page: puppeteer.Page) {
       .$$("div.line")
       .then((els) => els.map((el) => el.evaluate((el) => el.textContent))),
   );
-  assert_b(elements.length == 2, "should now have two lines");
-  assert_eq(elements, ["i32.const 1", "i32.const 2"]);
-  passed("entering two lines");
+  if (
+    assert_b(elements.length == 2, "should now have two lines") &&
+    assert_eq(elements, ["i32.const 1", "i32.const 2"])
+  )
+    passed("entering two lines");
 }

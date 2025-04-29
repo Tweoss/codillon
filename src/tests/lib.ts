@@ -79,6 +79,7 @@ export function assert_b(
       `${colors.bright}${colors.fg.red}Failed assertion${msg} ${colors.reset} ${colors.bright}${colors.dim}\n${location}${colors.reset}`,
     );
   }
+  return condition;
 }
 
 function stringify<T>(obj: T): string {
@@ -96,7 +97,7 @@ export function assert_eq<T>(a: T, b: T, msg: string = "", level: number = 1) {
     a_json.length > limit ? a_json.substring(0, limit) + " ..." : a_json;
   let b_trimmed =
     b_json.length > limit ? b_json.substring(0, limit) + " ..." : b_json;
-  assert_b(
+  return assert_b(
     a_json == b_json,
     `\n\t${a_trimmed} and ${b_trimmed} are not equal. \n\t` + msg,
     level + 1,
