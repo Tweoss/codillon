@@ -1,5 +1,5 @@
 import puppeteer, { Page } from "puppeteer-core";
-import { assert_b, assert_eq, passed } from "./lib.ts";
+import { assert_b, assert_eq, passed, wait_for_stdin } from "./lib.ts";
 
 async function main() {
   const browserExecutablePath = process.argv.at(2);
@@ -36,14 +36,14 @@ main();
 
 // We should be able to enter two lines.
 async function test_enter(page: Page) {
-  await page.type(".line", "i32.const 1");
+  await page.type(".container", "i32.const 1");
   await page.keyboard.press("Enter");
   await (await page.evaluateHandle(() => document.activeElement))
     .asElement()
     ?.type("i32.const 2");
   const elements = await Promise.all(
     await page
-      .$$("div.line")
+      .$$("div.container")
       .then((els) => els.map((el) => el.evaluate((el) => el.textContent))),
   );
   if (
@@ -51,4 +51,5 @@ async function test_enter(page: Page) {
     assert_eq(elements, ["i32.const 1", "i32.const 2"])
   )
     passed("entering two lines");
+  else await wait_for_stdin("debugging");
 }
