@@ -44,7 +44,7 @@ async function test_enter(page: Page) {
   const elements = await Promise.all(
     await page
       .$$("div.container")
-      .then((els) => els.map((el) => el.evaluate((el) => el.textContent))),
+      .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
   );
   if (
     assert_b(elements.length == 2, "should now have two lines") &&
