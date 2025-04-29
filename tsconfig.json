@@ -14,5 +14,8 @@
     "sourceMap": true,
     "strict": true,
     "noImplicitReturns": true
-  }
+  },
+  "exclude": [
+    "src/tests/*"
+  ]
 }
