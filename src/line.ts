@@ -39,8 +39,10 @@ function init({
 }) {
   /* DOM variables */
   let frag = clone();
-  const lineElement = frag.querySelector(".line") as HTMLDivElement;
-  const lineContainerElement = frag.querySelector(".line .container") as HTMLDivElement;
+  const lineElement = frag.querySelector(".container") as HTMLDivElement;
+  const lineContainerElement = frag.querySelector(
+    ".line .container",
+  ) as HTMLDivElement;
   let autocomplete: Autocomplete | null = null;
   let completions = [] as string[];
 
@@ -122,7 +124,9 @@ function init({
   }
   function handleInput() {
     const value = lineContainerElement.innerText;
-    value ? lineContainerElement.classList.remove("empty") : lineContainerElement.classList.add("empty");
+    value
+      ? lineContainerElement.classList.remove("empty")
+      : lineContainerElement.classList.add("empty");
     if (!value.startsWith("i32.const")) {
       lineElement.classList.add("error");
     } else {

@@ -3,7 +3,7 @@ export function listCompletions(prefix: string): string[] {
   return syntaxList.filter((syntax) => syntax.startsWith(prefix));
 }
 export function checkValidSyntax(text: string): boolean {
-  return syntaxList.some((syntax) => syntax === text);
+  return syntaxList.some((syntax) => text.startsWith(syntax));
 }
 
 // Placeholder
