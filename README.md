@@ -9,13 +9,13 @@ For best experience, install
 - tsc: https://www.typescriptlang.org/download/ (installable via npm)
   - compile Typescript to javascript
 - watchexec: https://github.com/watchexec/watchexec
-  - run build command save
+  - run build command on save
 - penguin: https://github.com/LukasKalbertodt/penguin
   - hot reloading of webpage
 - npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
   - manage some dependencies (see [./package.json](./package.json))
 
-Run `npm install` to get `tsc` and `prettier`.
+Run `npm install` to get `prettier`.
 
 For developing, start both `just watch` and `just serve` in some terminals.
 Open the `just serve` URL in a browser.
