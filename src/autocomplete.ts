@@ -2,8 +2,8 @@ import { syntaxList } from "./syntax.constants.js";
 export function listCompletions(prefix: string): string[] {
   return syntaxList.filter((syntax) => syntax.startsWith(prefix));
 }
-export function checkValidSyntax(text: string): boolean { 
-	return syntaxList.some((syntax) => syntax === text);
+export function checkValidSyntax(text: string): boolean {
+  return syntaxList.some((syntax) => syntax === text);
 }
 
 // Placeholder
@@ -63,10 +63,11 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
   /* DOM variables */
   let frag = clone();
   let header = frag.querySelector(".autocomplete-header") as HTMLDivElement;
-  let listElements = frag.querySelector(".autocomplete-list") as HTMLUListElement;
+  let listElements = frag.querySelector(
+    ".autocomplete-list",
+  ) as HTMLUListElement;
 
   /* State variables */
-  let completions: string[] = [];
   let lastSelected: string | null = null;
   let isOpen = localStorage.getItem("autocomplete_open") !== "false";
 
@@ -75,13 +76,6 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
   /* State logic */
   if (!isOpen) {
     listElements.classList.add("hidden");
-  }
-  function arraysEqual(a: string[], b: string[]): boolean {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
   }
 
   /* Event dispatchers */
@@ -108,12 +102,11 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
     } = {},
   ) {
     if (data.list) {
-      completions = data.list;
       listElements.innerHTML = "";
       data.list.slice(0, 10).forEach((item) => {
         const li = document.createElement("li");
         li.textContent = item;
-				li.addEventListener("mousedown", () => onSelect(item));
+        li.addEventListener("mousedown", () => onSelect(item));
         listElements.appendChild(li);
       });
     }
