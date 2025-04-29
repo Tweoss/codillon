@@ -1,3 +1,6 @@
+set dotenv-required := true
+set dotenv-load := true
+
 default:
     just build
 
@@ -10,4 +13,6 @@ watch:
     watchexec 'just build' -d 0 -v -w src
 serve:
     penguin serve . -p 8080 --no-auto-watch -w index.html -w build
+test:
+    node src/tests/main.ts "$BROWSER_PATH"
 
