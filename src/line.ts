@@ -39,9 +39,9 @@ function init({
 }) {
   /* DOM variables */
   let frag = clone();
-  const lineElement = frag.querySelector(".container") as HTMLDivElement;
-  const lineContainerElement = frag.querySelector(
-    ".line .container",
+  const lineElement = frag.querySelector(".line") as HTMLDivElement;
+  const lineContainerElement = lineElement.querySelector(
+    ".container",
   ) as HTMLDivElement;
   let autocomplete: Autocomplete | null = null;
   let completions = [] as string[];
@@ -172,7 +172,7 @@ function init({
       if (data.focus) {
         // Set focus to the end of this line.
         const range = document.createRange();
-        range.selectNodeContents(lineElement);
+        range.selectNodeContents(lineContainerElement);
         range.collapse(false);
         const sel = window.getSelection();
         sel?.removeAllRanges();
