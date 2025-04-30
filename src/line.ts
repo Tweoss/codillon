@@ -54,10 +54,11 @@ function init({
     lineContainerElement.textContent = value; // Use the element directly
   }
   function addAutocomplete(completions: string[]): void {
+    if (!completions) return;
     removeAutocomplete();
     autocomplete = createAutocomplete({
       onSelect: (s) => {
-        setContent(s);
+        setContent(s + " ");
         moveCursorToEnd();
       },
     });
@@ -115,7 +116,7 @@ function init({
       e.preventDefault();
       completions = listCompletions(lineContainerElement.innerText);
       if (lineContainerElement.innerText && completions.length > 0) {
-        setContent(completions[0]);
+        setContent(completions[0] + " ");
         moveCursorToEnd();
       } else {
         completionError();
@@ -127,25 +128,24 @@ function init({
     value
       ? lineContainerElement.classList.remove("empty")
       : lineContainerElement.classList.add("empty");
-    if (!value.startsWith("i32.const")) {
+    completions = listCompletions(value);
+    if (!completions.length) {
       lineElement.classList.add("error");
     } else {
       lineElement.classList.remove("error");
     }
-    completions = listCompletions(value);
-    if (completions.length > 0) {
-      if (!autocomplete) {
-        addAutocomplete(completions);
-      } else {
-        autocomplete({ list: completions });
-      }
-    } else {
+    if (completions.length === 0) {
       removeAutocomplete();
+    }
+    if (!autocomplete) {
+      addAutocomplete(completions);
+    } else {
+      autocomplete({ list: completions });
     }
   }
 
   function handleEnterKey(): void {
-    if (checkValidSyntax(lineContainerElement.innerText)) {
+    if (!autocomplete || checkValidSyntax(lineContainerElement.innerText)) {
       addNewLine(update);
     } else {
       completionError();
@@ -159,25 +159,30 @@ function init({
   lineElement.addEventListener("focusout", () => {
     setTimeout(() => {
       if (!lineElement.contains(document.activeElement)) {
+        if (!checkValidSyntax(lineContainerElement.innerText)) {
+          lineContainerElement.textContent = "";
+          lineContainerElement.classList.add("empty");
+        }
         removeAutocomplete();
       }
     }, 0);
+  });
+
+  lineElement.addEventListener("click", (e) => {
+    if (!lineContainerElement.contains(e.target as Node)) {
+      moveCursorToEnd();
+      if (!autocomplete && lineContainerElement.innerText) {
+        addAutocomplete(completions);
+      }
+    }
   });
 
   /* Initialization */
 
   function update(data: { content?: string; focus?: boolean } = {}) {
     if (data.content) setContent(data.content);
-    if (data.focus !== undefined) {
-      if (data.focus) {
-        // Set focus to the end of this line.
-        const range = document.createRange();
-        range.selectNodeContents(lineContainerElement);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
+    if (data.focus && data.focus !== undefined) {
+      moveCursorToEnd();
     }
     return { frag, div: lineElement };
   }

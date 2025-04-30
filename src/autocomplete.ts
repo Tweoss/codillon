@@ -1,9 +1,14 @@
 import { syntaxList } from "./syntax.constants.js";
 export function listCompletions(prefix: string): string[] {
-  return syntaxList.filter((syntax) => syntax.startsWith(prefix));
+  return syntaxList.filter((syntax) =>
+    prefix.startsWith(syntax.slice(0, prefix.length)),
+  );
 }
 export function checkValidSyntax(text: string): boolean {
-  return syntaxList.some((syntax) => text.startsWith(syntax));
+  return syntaxList.some(
+    (syntax) =>
+      text.startsWith(syntax + " ") && text.length > syntax.length + 1,
+  );
 }
 
 // Placeholder
@@ -106,7 +111,10 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
       data.list.slice(0, 10).forEach((item) => {
         const li = document.createElement("li");
         li.textContent = item;
-        li.addEventListener("mousedown", () => onSelect(item));
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          onSelect(item);
+        });
         listElements.appendChild(li);
       });
     }
