@@ -134,13 +134,14 @@ function init({
     } else {
       lineElement.classList.remove("error");
     }
-    if (completions.length === 0) {
-      removeAutocomplete();
-    }
-    if (!autocomplete) {
-      addAutocomplete(completions);
+    if (completions.length > 0) {
+      if (!autocomplete) {
+        addAutocomplete(completions);
+      } else {
+        autocomplete({ list: completions });
+      }
     } else {
-      autocomplete({ list: completions });
+      removeAutocomplete();
     }
   }
 

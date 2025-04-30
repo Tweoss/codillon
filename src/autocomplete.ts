@@ -89,7 +89,8 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
 
   /* Event listeners */
 
-  header.addEventListener("click", () => {
+  header.addEventListener("mousedown", (e) => {
+    e.preventDefault();
     isOpen = !isOpen;
     if (isOpen) {
       listElements.classList.remove("hidden");
