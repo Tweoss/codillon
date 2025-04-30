@@ -18,6 +18,7 @@ For best experience, install
 Run `npm install` to get `prettier`.
 
 Add the path to a browser in a `.env` file.
+
 ```
 BROWSER_PATH="/Users/francis/path/to/google chrome"
 ```

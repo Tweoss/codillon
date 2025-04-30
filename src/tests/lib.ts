@@ -108,7 +108,7 @@ async function sleep(duration_ms: number) {
   await new Promise((e) => setTimeout(() => e(0), duration_ms));
 }
 
-async function wait_for_stdin(
+export async function wait_for_stdin(
   prompt: string = "waiting for input",
 ): Promise<string> {
   const int = createInterface({ output: process.stdout, input: process.stdin });
