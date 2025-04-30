@@ -2,7 +2,11 @@
   "devDependencies": {
     "prettier": "3.5.3"
   },
+  "type": "module",
   "scripts": {
     "preinstall": "git config core.hooksPath .githooks/"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.7.1"
   }
 }

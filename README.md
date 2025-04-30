@@ -17,7 +17,17 @@ For best experience, install
 
 Run `npm install` to get `prettier`.
 
+Add the path to a browser in a `.env` file.
+```
+BROWSER_PATH="/Users/francis/path/to/google chrome"
+```
+
 For developing, start both `just watch` and `just serve` in some terminals.
 Open the `just serve` URL in a browser.
 
 Open the source files and start editing.
+
+# Testing
+
+Start the web server with `just serve`.
+Run `just test`.
