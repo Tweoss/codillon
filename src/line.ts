@@ -141,7 +141,6 @@ function init({
       if (!lineElement.contains(document.activeElement)) {
         if (!checkValidSyntax(block.getContent())) {
           block.setContent("");
-          block.div.classList.add("empty");
         }
         removeAutocomplete();
       }

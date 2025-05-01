@@ -30,11 +30,11 @@ function init() {
 
   /* State update functions */
   function setContent(value: string) {
+    if (text !== value) {
+      text = value;
+      blockElement.textContent = value;
+    }
     if (value) {
-      if (text !== value) {
-        text = value;
-        blockElement.textContent = value;
-      }
       blockElement.classList.remove("empty");
     } else {
       blockElement.classList.add("empty");
