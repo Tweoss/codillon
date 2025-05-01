@@ -3,6 +3,7 @@ import createAutocomplete, {
   listCompletions,
   checkValidSyntax,
 } from "./autocomplete.js";
+import Block from "./block.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -12,19 +13,15 @@ template.innerHTML = `<style>
     min-height: 1.2em;
     box-sizing: border-box;
     -webkit-tap-highlight-color: red;
-  }
-  .container {
-    width: fit-conent;
-  }
-  .empty {
-    width: 100%;
+    height: 16px;
+    box-sizing: border-box;
   }
   .error {
     text-decoration: underline;
     text-decoration-color: red;
     text-decoration-style: wavy;
   }
-</style><div class="line"><div class="container empty" contenteditable="plaintext-only" spellcheck="false"></div></div>`;
+</style><div class="line"></div>`;
 
 function clone() {
   return document.importNode(template.content, true);
@@ -40,26 +37,21 @@ function init({
   /* DOM variables */
   let frag = clone();
   const lineElement = frag.querySelector(".line") as HTMLDivElement;
-  const lineContainerElement = lineElement.querySelector(
-    ".container",
-  ) as HTMLDivElement;
+  const block = Block()();
+  lineElement.appendChild(block.frag);
   let autocomplete: Autocomplete | null = null;
   let completions = [] as string[];
 
   /* State variables */
-  let text: string;
 
   /* DOM update functions */
-  function setTextNode(value: string) {
-    lineContainerElement.textContent = value; // Use the element directly
-  }
   function addAutocomplete(completions: string[]): void {
     if (!completions) return;
     removeAutocomplete();
     autocomplete = createAutocomplete({
       onSelect: (s) => {
-        setContent(s + " ");
-        moveCursorToEnd();
+        block.setContent(s + " ");
+        block.moveCursorToEnd();
       },
     });
     const autoFrag = autocomplete({ list: completions });
@@ -74,21 +66,7 @@ function init({
   }
 
   /* State update functions */
-  function setContent(value: string) {
-    if (text !== value) {
-      text = value;
-      setTextNode(value);
-    }
-  }
   /* State logic */
-  function moveCursorToEnd() {
-    const range = document.createRange();
-    range.selectNodeContents(lineContainerElement);
-    range.collapse(false);
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-  }
   function completionError() {
     lineElement.animate(
       [
@@ -114,20 +92,20 @@ function init({
       deleteLine(update);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      completions = listCompletions(lineContainerElement.innerText);
-      if (lineContainerElement.innerText && completions.length > 0) {
-        setContent(completions[0] + " ");
-        moveCursorToEnd();
+      completions = listCompletions(block.getContent());
+      if (block.getContent() && completions.length > 0) {
+        block.setContent(completions[0] + " ");
+        block.moveCursorToEnd();
       } else {
         completionError();
       }
     }
   }
   function handleInput() {
-    const value = lineContainerElement.innerText;
+    const value = block.getContent();
     value
-      ? lineContainerElement.classList.remove("empty")
-      : lineContainerElement.classList.add("empty");
+      ? block.div.classList.remove("empty")
+      : block.div.classList.add("empty");
     completions = listCompletions(value);
     if (!completions.length) {
       lineElement.classList.add("error");
@@ -146,7 +124,8 @@ function init({
   }
 
   function handleEnterKey(): void {
-    if (!autocomplete || checkValidSyntax(lineContainerElement.innerText)) {
+    const value: string = block.getContent();
+    if (!value || checkValidSyntax(value)) {
       addNewLine(update);
     } else {
       completionError();
@@ -160,19 +139,18 @@ function init({
   lineElement.addEventListener("focusout", () => {
     setTimeout(() => {
       if (!lineElement.contains(document.activeElement)) {
-        if (!checkValidSyntax(lineContainerElement.innerText)) {
-          lineContainerElement.textContent = "";
-          lineContainerElement.classList.add("empty");
+        if (!checkValidSyntax(block.getContent())) {
+          block.setContent("");
+          block.div.classList.add("empty");
         }
         removeAutocomplete();
       }
     }, 0);
   });
-
   lineElement.addEventListener("click", (e) => {
-    if (!lineContainerElement.contains(e.target as Node)) {
-      moveCursorToEnd();
-      if (!autocomplete && lineContainerElement.innerText) {
+    if (!block.div.contains(e.target as Node)) {
+      block.moveCursorToEnd();
+      if (!autocomplete && block.getContent()) {
         addAutocomplete(completions);
       }
     }
@@ -181,9 +159,9 @@ function init({
   /* Initialization */
 
   function update(data: { content?: string; focus?: boolean } = {}) {
-    if (data.content) setContent(data.content);
+    if (data.content) block.setContent(data.content);
     if (data.focus && data.focus !== undefined) {
-      moveCursorToEnd();
+      block.moveCursorToEnd();
     }
     return { frag, div: lineElement };
   }

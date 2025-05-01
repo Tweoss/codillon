@@ -73,7 +73,6 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
   ) as HTMLUListElement;
 
   /* State variables */
-  let lastSelected: string | null = null;
   let isOpen = localStorage.getItem("autocomplete_open") !== "false";
 
   /* DOM update functions */
