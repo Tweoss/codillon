@@ -14,7 +14,7 @@ import {
   f64Instructions,
 } from "./syntax.constants.js";
 
-function validateUI32(text: string): boolean {
+export function validateUI32(text: string): boolean {
   // Check if the string is a valid integer
   if (!/^-?\d+$/.test(text)) {
     return false;
@@ -23,7 +23,7 @@ function validateUI32(text: string): boolean {
   return val >= 0 && val <= Math.pow(2, 32) - 1;
 }
 
-function validateSI32(text: string): boolean {
+export function validateSI32(text: string): boolean {
   // Check if the string is a valid integer
   if (!/^-?\d+$/.test(text)) {
     return false;
@@ -32,7 +32,7 @@ function validateSI32(text: string): boolean {
   return val >= -Math.pow(2, 31) && val <= Math.pow(2, 31) - 1;
 }
 
-function validateUI64(text: string): boolean {
+export function validateUI64(text: string): boolean {
   // Check if the string is a valid integer
   if (!/^-?\d+$/.test(text)) {
     return false;
@@ -41,7 +41,7 @@ function validateUI64(text: string): boolean {
   return val >= 0 && val <= Math.pow(2, 64) - 1;
 }
 
-function validateSI64(text: string): boolean {
+export function validateSI64(text: string): boolean {
   // Check if the string is a valid integer
   if (!/^-?\d+$/.test(text)) {
     return false;
@@ -50,15 +50,15 @@ function validateSI64(text: string): boolean {
   return val >= -Math.pow(2, 63) && val <= Math.pow(2, 63) - 1;
 }
 
-function validateI32(text: string): boolean {
+export function validateI32(text: string): boolean {
   return validateUI32(text) || validateSI32(text);
 }
 
-function validateI64(text: string): boolean {
+export function validateI64(text: string): boolean {
   return validateUI64(text) || validateSI64(text);
 }
 
-function validateF32(text: string): boolean {
+export function validateF32(text: string): boolean {
   // Check if the string is a valid float
   if (!/^-?\d*\.?\d+(?:[eE][-+]?\d+)?$/.test(text)) {
     return false;
@@ -70,7 +70,7 @@ function validateF32(text: string): boolean {
   return val >= -3.4028234663852886e38 && val <= 3.4028234663852886e38;
 }
 
-function validateF64(text: string): boolean {
+export function validateF64(text: string): boolean {
   // Check if the string is a valid float
   if (!/^-?\d*\.?\d+(?:[eE][-+]?\d+)?$/.test(text)) {
     return false;
@@ -82,31 +82,31 @@ function validateF64(text: string): boolean {
   return val >= -1.7976931348623157e308 && val <= 1.7976931348623157e308;
 }
 
-function validateLabelIndex(text: string): boolean {
+export function validateLabelIndex(text: string): boolean {
   return validateUI32(text);
 }
 
-function validateLabelIndexVectorLabelIndex(text: string): boolean {
+export function validateLabelIndexVectorLabelIndex(text: string): boolean {
   return validateUI32(text);
 }
 
-function validateFuncIndex(text: string): boolean {
+export function validateFuncIndex(text: string): boolean {
   return validateUI32(text);
 }
 
-function validateTypeIndex(text: string): boolean {
+export function validateTypeIndex(text: string): boolean {
   return validateUI32(text);
 }
 
-function validateLocalIndex(text: string): boolean {
+export function validateLocalIndex(text: string): boolean {
   return validateUI32(text);
 }
 
-function validateGlobalIndex(text: string): boolean {
+export function validateGlobalIndex(text: string): boolean {
   return validateUI32(text);
 }
 
-function validateMemoryArgument(text: string, text2: string): boolean {
+export function validateMemoryArgument(text: string, text2: string): boolean {
   return validateUI32(text) && validateUI32(text2);
 }
 
