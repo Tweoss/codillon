@@ -24,20 +24,18 @@ function init() {
   const blockElement = frag.querySelector(".container") as HTMLDivElement;
 
   /* State variables */
-  let text: string;
 
   /* DOM update functions */
 
   /* State update functions */
   function setContent(value: string) {
-    if (text !== value) {
-      text = value;
-      blockElement.textContent = value;
-    }
-    if (value) {
-      blockElement.classList.remove("empty");
-    } else {
-      blockElement.classList.add("empty");
+    if (blockElement.innerText !== value) {
+      blockElement.innerText = value;
+      if (value) {
+        blockElement.classList.remove("empty");
+      } else {
+        blockElement.classList.add("empty");
+      }
     }
   }
   /* State logic */

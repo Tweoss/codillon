@@ -107,7 +107,7 @@ function init({
       ? block.div.classList.remove("empty")
       : block.div.classList.add("empty");
     completions = listCompletions(value);
-    if (!completions.length) {
+    if (!checkValidSyntax(value)) {
       lineElement.classList.add("error");
     } else {
       lineElement.classList.remove("error");
@@ -137,14 +137,10 @@ function init({
   lineElement.addEventListener("keydown", handleKeyDown);
   lineElement.addEventListener("input", handleInput);
   lineElement.addEventListener("focusout", () => {
-    setTimeout(() => {
-      if (!lineElement.contains(document.activeElement)) {
-        if (!checkValidSyntax(block.getContent())) {
-          block.setContent("");
-        }
-        removeAutocomplete();
-      }
-    }, 0);
+    if (!checkValidSyntax(block.getContent())) {
+      block.setContent("");
+    }
+    removeAutocomplete();
   });
   lineElement.addEventListener("click", (e) => {
     if (!block.div.contains(e.target as Node)) {
