@@ -1,14 +1,12 @@
-import { syntaxList } from "./syntax.constants.js";
+import { validateInstructionWithArgs } from "./instruction_arg_validation.js";
+import { instructions } from "./syntax.constants.js";
 export function listCompletions(prefix: string): string[] {
-  return syntaxList.filter((syntax) =>
-    prefix.startsWith(syntax.slice(0, prefix.length)),
+  return instructions.filter((instruction) =>
+    prefix.startsWith(instruction.slice(0, prefix.length)),
   );
 }
 export function checkValidSyntax(text: string): boolean {
-  return syntaxList.some(
-    (syntax) =>
-      text.startsWith(syntax + " ") && text.length > syntax.length + 1,
-  );
+  return validateInstructionWithArgs(text);
 }
 
 // Placeholder

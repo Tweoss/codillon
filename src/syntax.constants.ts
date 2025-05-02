@@ -133,7 +133,7 @@ export const localIndexInstructions: string[] = [
   "local.tee",
 ];
 export const globalIndexInstructions: string[] = ["global.get", "global.set"];
-export const memoryIndexInstructions: string[] = [
+export const memoryArgumentInstructions: string[] = [
   "i32.load",
   "i64.load",
   "f32.load",
@@ -171,7 +171,7 @@ export const instructions: string[] = [
   ...typeIndexInstructions,
   ...localIndexInstructions,
   ...globalIndexInstructions,
-  ...memoryIndexInstructions,
+  ...memoryArgumentInstructions,
   ...i32Instructions,
   ...i64Instructions,
   ...f32Instructions,
