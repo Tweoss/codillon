@@ -2,6 +2,8 @@ const template = document.createElement("template");
 template.innerHTML = `<style>
   .container {
     width: fit-conent;
+		margin: 1px 0;
+		cursor: text;
   }
   .empty {
     width: 100%;
@@ -10,7 +12,21 @@ template.innerHTML = `<style>
     background-color: #e3f2fd;
   }
   .block {
-    border: 1px solid blue;
+    background: linear-gradient(145deg,rgb(177, 216, 248),rgb(119, 194, 255));
+    padding: 1px 8px 3px;
+    border-radius: 4px;
+    cursor: move;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3),
+                itnset 4px 4px 8px rgba(255,255,255,0.2),
+                inset -4px -4px 8px rgba(0,0,0,0.1);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+    box-sizing: border-box;
+    font-weight: bold;
+  }
+  .block:hover {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4),
+                inset 1px 1px 2px rgba(255,255,255,0.2),
+                inset -1px -1px 2px rgba(0,0,0,0.1);
   }
 </style><div class="container empty" contenteditable="plaintext-only" spellcheck="false"></div>`;
 
@@ -55,8 +71,11 @@ function init() {
   /* Event listeners */
   blockElement.addEventListener("dragstart", (e) => {
     if (blockElement.classList.contains("block")) {
-      e.dataTransfer?.setData("text/plain", "");
       (window as any).__draggedLine = blockElement;
+      if (e.dataTransfer) {
+        e.dataTransfer.setData("text/plain", "");
+        e.dataTransfer.effectAllowed = "move";
+      }
     }
   });
   blockElement.addEventListener("dragover", (e) => {
@@ -90,6 +109,9 @@ function init() {
   blockElement.addEventListener("dragenter", (e) => {
     if (blockElement.classList.contains("empty")) {
       blockElement.classList.add("selected");
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "none";
+      }
     }
   });
   blockElement.addEventListener("dragleave", (e) => {

@@ -3,15 +3,16 @@ import createLineNumber from "./line_number.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
 
-const DEFAULTS = { margin_width: 62 };
+const DEFAULTS = { margin_width: 40 };
 
 const template = document.createElement("template");
 template.innerHTML = `
   <style>
     #editor-container {
       display: flex;
-      border: 1px solid #ccc;
-      font-family: monospace;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-radius: 0 0 10px 10px;
       height: 300px;
       margin: 0 20px 20px;
       overflow-y: auto;
@@ -21,7 +22,7 @@ template.innerHTML = `
       padding: 10px;
       text-align: right;
       user-select: none;
-      line-height: 1.2em;
+      line-height: 24px;
       display: block;
     }
     #content-editor {
@@ -29,11 +30,8 @@ template.innerHTML = `
       padding: 10px;
       outline: none;
       white-space: pre;
-      line-height: 1.2em;
+      line-height: 20px;
       background: white;
-    }
-    .line {
-      min-height: 1.2em;
     }
   </style>
   <div id="editor-container">

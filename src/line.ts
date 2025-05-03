@@ -10,11 +10,10 @@ template.innerHTML = `<style>
   .line {
     display: flex;
     gap: 4px;
-    min-height: 1.2em;
     box-sizing: border-box;
     -webkit-tap-highlight-color: red;
-    height: 16px;
-    box-sizing: border-box;
+    height: 24px;
+    border-bottom: 1px dashed var(--border-color);
   }
   .error {
     text-decoration: underline;
@@ -41,6 +40,7 @@ function init({
   lineElement.appendChild(block.frag);
   let autocomplete: Autocomplete | null = null;
   let completions = [] as string[];
+  let preValidState = "";
 
   /* State variables */
 
@@ -111,6 +111,7 @@ function init({
       lineElement.classList.add("error");
     } else {
       lineElement.classList.remove("error");
+      preValidState = value;
     }
     if (completions.length > 0) {
       if (!autocomplete) {
@@ -137,8 +138,13 @@ function init({
   lineElement.addEventListener("keydown", handleKeyDown);
   lineElement.addEventListener("input", handleInput);
   lineElement.addEventListener("focusout", () => {
-    if (!checkValidSyntax(block.getContent())) {
-      block.setContent("");
+    let value = block.getContent().trim();
+    if (!value) {
+      preValidState = "";
+    }
+    if (!checkValidSyntax(value)) {
+      block.setContent(preValidState);
+      lineElement.classList.remove("error");
     }
     removeAutocomplete();
   });

@@ -10,27 +10,23 @@ template.innerHTML = `
       justify-content: space-between;
       padding: 10px;
       background: #eee;
-      border: 1px solid #ccc;
-      font-family: sans-serif;
-			margin: 20px 20px 0;
-    }
-    #menu-bar .left-buttons button,
-    #menu-bar .right-buttons button {
-      margin-right: 5px;
+      margin: 20px 20px 0;
+      border-radius: 10px 10px 0 0;
     }
     #menu-bar .right-buttons button {
+      width: 100px;
       margin-right: 0;
     }
   </style>
-  <div id="menu-bar">
+  <div id="menu-bar" class="container">
     <div class="left-buttons">
-      <button id="run-btn">Run</button>
-      <button id="step-over-button">Step Over</button>
-			<button id="step-into-button">Step Into</button>
-			<button id="step-out-button">Step Out</button>
+      <button id="run-btn" class="button press-effect">Run</button>
+      <button id="step-over-button" class="button press-effect">Step Over</button>
+      <button id="step-into-button" class="button press-effect">Step Into</button>
+      <button id="step-out-button" class="button press-effect">Step Out</button>
     </div>
     <div class="right-buttons">
-      <button id="transition-btn"></button>
+      <button id="transition-btn" class="button press-effect"></button>
     </div>
   </div>
 `;

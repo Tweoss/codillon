@@ -40,7 +40,9 @@ template.innerHTML = `<style>
     left: 0;
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     background: #fff;
     margin: 0;
     padding: 0;
@@ -54,6 +56,7 @@ template.innerHTML = `<style>
   .autocomplete-list li {
     padding: 2px 4px;
     cursor: pointer;
+    transition: background 150 ease;
   }
   .autocomplete-list li:hover {
     background: #eee;
