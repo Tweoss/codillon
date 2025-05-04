@@ -146,7 +146,7 @@ function init({
   }
 
   function handleEnterKey(): void {
-    if (!autocomplete || checkValidSyntax(lineContainerElement.innerText)) {
+    if (checkValidSyntax(lineContainerElement.innerText)) {
       addNewLine(update);
     } else {
       completionError();
