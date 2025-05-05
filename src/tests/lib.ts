@@ -104,7 +104,7 @@ export function assert_eq<T>(a: T, b: T, msg: string = "", level: number = 1) {
   );
 }
 
-async function sleep(duration_ms: number) {
+export async function sleep(duration_ms: number) {
   await new Promise((e) => setTimeout(() => e(0), duration_ms));
 }
 

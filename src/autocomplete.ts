@@ -5,10 +5,7 @@ export function listCompletions(prefix: string): string[] {
   );
 }
 export function checkValidSyntax(text: string): boolean {
-  return syntaxList.some(
-    (syntax) =>
-      text.startsWith(syntax + " ") && text.length > syntax.length + 1,
-  );
+  return syntaxList.some((syntax) => text.startsWith(syntax + " "));
 }
 
 // Placeholder
