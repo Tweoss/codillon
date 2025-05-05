@@ -87,7 +87,7 @@ function init({
     if (e.key === "Enter") {
       e.preventDefault();
       handleEnterKey();
-    } else if (e.key === "Backspace" && lineElement.textContent?.length === 0) {
+    } else if (e.key === "Backspace" && block.getContent() === "") {
       e.preventDefault();
       deleteLine(update);
     } else if (e.key === "Tab") {
