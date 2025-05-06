@@ -1,5 +1,5 @@
 import puppeteer, { Page } from "puppeteer-core";
-import { assert_b, assert_eq, passed, wait_for_stdin } from "./lib.ts";
+import { assert_b, assert_eq, passed, sleep, wait_for_stdin } from "./lib.ts";
 
 async function main() {
   const browserExecutablePath = process.argv.at(2);
@@ -11,45 +11,57 @@ async function main() {
   const browser = await puppeteer.launch({
     executablePath: browserExecutablePath,
     headless: false,
+    waitForInitialPage: false,
+    args: ["--no-startup-window"],
   });
-  const page = await browser.newPage();
-  page.on("console", (msg) =>
-    console.log(
-      "PAGE LOG:",
-      msg.type(),
-      msg.args(),
-      msg.location(),
-      msg.text(),
-      msg.stackTrace(),
-    ),
-  );
-  page.on("pagerror", (error) => console.log(error));
-  page.on("requestfailed", (request) => {
-    console.log(request.failure()?.errorText, request.url);
-  });
-  await page.goto("http://localhost:8080");
+  const new_page = async () => {
+    const page = await browser.newPage();
+    await page.goto("http://localhost:8080");
+    return page;
+  };
+  const page = await new_page();
   await test_enter(page);
+
+  await test_invalid_enter(await new_page());
   await browser.close();
   process.exit(0);
 }
 main();
 
+async function type_line(page: Page, index: number, text: string) {
+  await (await page.waitForSelector(
+    `#content-editor div:nth-of-type(${index})`,
+  ))!.type(text);
+}
+
 // We should be able to enter two lines.
 async function test_enter(page: Page) {
-  await page.type(".container", "i32.const 1");
+  // This refocuses the page somehow.
   await page.keyboard.press("Enter");
-  await (await page.evaluateHandle(() => document.activeElement))
-    .asElement()
-    ?.type("i32.const 2");
+  await type_line(page, 1, "i32.const 1\n");
+  // Our code takes a bit of time to run after we insert a new line.
+  await sleep(10);
+  await type_line(page, 2, "i32.const 2");
   const elements = await Promise.all(
     await page
       .$$("div.container")
       .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
   );
-  if (
-    assert_b(elements.length == 2, "should now have two lines") &&
-    assert_eq(elements, ["i32.const 1", "i32.const 2"])
-  )
+  if (assert_eq(elements, ["i32.const 1", "i32.const 2"]))
     passed("entering two lines");
+  else await wait_for_stdin("debugging");
+}
+
+// We should be able not be able to enter an invalid line.
+async function test_invalid_enter(page: Page) {
+  await page.keyboard.press("Enter");
+  await type_line(page, 1, "invalid text\n");
+  const elements = await Promise.all(
+    await page
+      .$$("div.container")
+      .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
+  );
+  if (assert_eq(elements, ["invalid text"], "should have kept text"))
+    passed("entering invalid line");
   else await wait_for_stdin("debugging");
 }

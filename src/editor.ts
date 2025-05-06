@@ -1,5 +1,4 @@
 import { get_nodes } from "./lib.js";
-import createLineNumber from "./line_number.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 
 const DEFAULTS = { margin_width: 62 };
@@ -68,24 +67,26 @@ function createEditor() {
     ).join("<br>");
   }
 
+  function getCurrentLineIndex(reference: Line) {
+    return lines.findIndex((l) => l == reference);
+  }
+
   function handleBackspaceOnEmptyLine(line: Line) {
     const prevLine = line().div.previousElementSibling as HTMLDivElement;
     if (!prevLine) return;
     if (prevLine.textContent) {
       prevLine.textContent += line().div.textContent;
     }
-    // Always make sure at least one line.
-    if (lines.length > 1) {
-      line().div.remove();
-      const index = lines.findIndex((l) => l == line);
-      const prev_index = index - 1 < 0 ? 0 : index - 1;
-      if (prev_index < lines.length) {
-        // Refocus on the previous line.
-        lines[prev_index]({ focus: true });
-      }
-      lines.splice(index, 1);
-      updateLineNumbers();
-    }
+
+    const index = getCurrentLineIndex(line);
+    // Always makes sure at least one line.
+    if (index <= 0) return;
+    const prev_index = index - 1;
+    line().div.remove();
+    lines.splice(index, 1);
+    lines[prev_index]({ focus: true });
+
+    updateLineNumbers();
   }
 
   function addNewLine(referenceLine?: Line) {
@@ -99,18 +100,21 @@ function createEditor() {
     } else {
       contentEditor.appendChild(lineDOM);
     }
-    // Focus after appending to DOM.
-    line({ focus: true });
-    lines.push(line);
+    // Focus after appending to DOM (needs a bit of time to update).
+    requestAnimationFrame(() => {
+      line({ focus: true });
+    });
+    // Split from start up to and including reference line, then after reference line.
+    // Or, if no reference, just append to end.
+    const index = referenceLine
+      ? getCurrentLineIndex(referenceLine) + 1
+      : lines.length;
+    lines = lines.slice(0, index).concat([line]).concat(lines.slice(index));
     updateLineNumbers();
   }
 
   /* Initialization */
   addNewLine();
-  // Seems like we need delay after page is loaded before focusing.
-  requestAnimationFrame(() => {
-    lines[0]({ focus: true });
-  });
 
   return frag;
 }
