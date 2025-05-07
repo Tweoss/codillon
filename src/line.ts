@@ -198,7 +198,7 @@ function init({
     removeAutocomplete();
     autocomplete = createAutocomplete({
       onSelect: (s) => {
-        block.setContent(s + " ");
+        block.setContent(s);
         block.moveCursorToEnd();
       },
     });
@@ -242,7 +242,7 @@ function init({
       e.preventDefault();
       completions = listCompletions(block.getContent());
       if (block.getContent() && completions.length > 0) {
-        block.setContent(completions[0] + " ");
+        block.setContent(completions[0]);
         block.moveCursorToEnd();
       } else {
         completionError();
@@ -292,10 +292,14 @@ function init({
     }
     if (!checkValidSyntax(value)) {
       block.setContent(preValidState);
-      lineElement.classList.remove("error");
     } else {
-      applySyntaxHighlighting(lineContainerElement);
+      try {
+        applySyntaxHighlighting(block.div);
+      } catch (e) {
+        console.error("Error applying syntax highlighting:", e);
+      }
     }
+    lineElement.classList.remove("error");
     removeAutocomplete();
   });
   lineElement.addEventListener("click", (e) => {

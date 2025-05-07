@@ -12,7 +12,7 @@ template.innerHTML = `<style>
     background-color: #e3f2fd;
   }
   .block {
-    background: linear-gradient(145deg,rgb(177, 216, 248),rgb(119, 194, 255));
+    background: linear-gradient(145deg,rgb(220, 220, 220),rgb(190, 190, 190));
     padding: 1px 8px 3px;
     border-radius: 4px;
     cursor: move;
@@ -92,8 +92,8 @@ function init() {
         blockElement.classList.remove("selected");
         blockElement.classList.add("block");
         blockElement.setAttribute("draggable", "true");
-        blockElement.textContent = draggedEl.textContent;
-        draggedEl.textContent = "";
+        blockElement.innerHTML = draggedEl.innerHTML;
+        draggedEl.innerHTML = "";
         draggedEl.classList.remove("block");
         draggedEl.classList.add("empty");
         draggedEl.removeAttribute("draggable");
