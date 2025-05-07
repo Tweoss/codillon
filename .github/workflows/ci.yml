@@ -1,0 +1,40 @@
+name: Simple CI
+
+on:
+  push:
+    branches: ["main", "ci-test"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      BROWSER_PATH: /usr/bin/chromium-browser
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Ensure browser binary exists
+        run: |
+          if [ ! -x "$BROWSER_PATH" ]; then
+            sudo apt-get update
+            sudo apt-get install -y chromium-browser
+          fi
+
+      - name: Install just
+        run: |
+          curl -sL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: just test
