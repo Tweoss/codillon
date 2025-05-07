@@ -38,7 +38,9 @@ template.innerHTML = `<style>
     left: 0;
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     background: #fff;
     margin: 0;
     padding: 0;
@@ -71,7 +73,6 @@ function init({ onSelect }: { onSelect: (selected: string) => void }) {
   ) as HTMLUListElement;
 
   /* State variables */
-  let lastSelected: string | null = null;
   let isOpen = localStorage.getItem("autocomplete_open") !== "false";
 
   /* DOM update functions */

@@ -1,17 +1,19 @@
 import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
+import MenuBar from "./menu_bar.js";
 
-const DEFAULTS = { margin_width: 62 };
+const DEFAULTS = { margin_width: 40 };
 
 const template = document.createElement("template");
 template.innerHTML = `
   <style>
     #editor-container {
       display: flex;
-      border: 1px solid #ccc;
-      font-family: monospace;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-radius: 0 0 10px 10px;
       height: 300px;
-      margin: 20px;
+      margin: 0 20px 20px;
       overflow-y: auto;
     }
     #line-numbers {
@@ -19,7 +21,7 @@ template.innerHTML = `
       padding: 10px;
       text-align: right;
       user-select: none;
-      line-height: 1.2em;
+      line-height: 24px;
       display: block;
     }
     #content-editor {
@@ -27,14 +29,10 @@ template.innerHTML = `
       padding: 10px;
       outline: none;
       white-space: pre;
-      line-height: 1.2em;
+      line-height: 20px;
       background: white;
     }
-    .line {
-      min-height: 1.2em;
-    }
   </style>
-  <div>Helloo <span id="name">world</span>!</div>
   <div id="editor-container">
     <!-- wrapper div allows us to get around no background in overflow -->
     <div><div id="line-numbers" style="width:${DEFAULTS.margin_width}px;"></div></div>
@@ -47,6 +45,7 @@ function cloneTemplate() {
 }
 
 function createEditor() {
+  /* DOM variables */
   const frag = cloneTemplate();
   const nodes = get_nodes(frag, [
     "line-numbers",
@@ -55,6 +54,8 @@ function createEditor() {
   ] as const);
   const lineNumbersContainer = nodes["line-numbers"] as HTMLDivElement;
   const contentEditor = nodes["content-editor"] as HTMLDivElement;
+  const menuBar = MenuBar();
+  frag.prepend(menuBar);
 
   /* State variables. */
   let lines: Line[] = [];
@@ -114,7 +115,13 @@ function createEditor() {
   }
 
   /* Initialization */
-  addNewLine();
+  for (let i = 0; i < 10; i++) {
+    addNewLine();
+  }
+  // Seems like we need delay after page is loaded before focusing.
+  requestAnimationFrame(() => {
+    lines[0]({ focus: true });
+  });
 
   return frag;
 }
