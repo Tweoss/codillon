@@ -28,7 +28,7 @@ jobs:
         run: |
           cat <<'EOF' > .env
           BROWSER_PATH=/usr/bin/chromium-browser
-          CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
+          CHROME_ARGS="--no-sandbox --disable-setuid-sandbox"
           EOF
 
           # Export every key=value line in .env to subsequent steps
