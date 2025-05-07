@@ -16,15 +16,13 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Load .env into job environment
+      - name: Create .env and load it into the job environment
         shell: bash
         run: |
-          # export everything into a .env
-          set -a
-          source .env
-          set +a
-          # expose it to the rest of the job
-          echo "BROWSER_PATH=$BROWSER_PATH" >> "$GITHUB_ENV"
+          # TODO: do this in a better way if we add more variables
+          echo 'BROWSER_PATH=/usr/bin/chromium-browser' > .env
+          # currently this should not be needed but it *could* be in the future
+          cat .env >> "$GITHUB_ENV"
 
       - name: Set up Node
         uses: actions/setup-node@v4
