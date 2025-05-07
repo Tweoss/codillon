@@ -16,6 +16,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Load .env into job environment
+        shell: bash
+        run: |
+          # export everything into a .env
+          set -a
+          source .env
+          set +a
+          # expose it to the rest of the job
+          echo "BROWSER_PATH=$BROWSER_PATH" >> "$GITHUB_ENV"
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
