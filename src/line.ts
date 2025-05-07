@@ -166,7 +166,11 @@ function init({
   lineElement.addEventListener("click", (e) => {
     if (!block.div.contains(e.target as Node)) {
       setCursor(block.div, block.getContent().length);
-      if (!autocomplete && block.getContent()) {
+      if (
+        !autocomplete &&
+        block.getContent() &&
+        !block.div.classList.contains("block")
+      ) {
         addAutocomplete(completions);
       }
     }

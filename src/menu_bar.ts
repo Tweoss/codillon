@@ -26,7 +26,7 @@ template.innerHTML = `
       <button id="step-out-button" class="button press-effect">Step Out</button>
     </div>
     <div class="right-buttons">
-      <button id="transition-btn" class="button press-effect"></button>
+      <button id="transition-btn" class="button press-effect">show block</button>
     </div>
   </div>
 `;
@@ -56,7 +56,6 @@ function init() {
   let mode: Mode = "text";
   /* DOM update functions */
   /* State update functions */
-  transitionBtn.textContent = `show ${mode}`;
   function convertToBlock() {
     document.querySelectorAll(".line .container").forEach((container) => {
       container.removeAttribute("contentEditable");
@@ -65,8 +64,8 @@ function init() {
         container.setAttribute("draggable", "true");
       }
     });
-    mode = "block";
     transitionBtn.textContent = `show ${mode}`;
+    mode = "block";
   }
   function convertToText() {
     document.querySelectorAll(".line .container").forEach((container) => {
@@ -74,8 +73,8 @@ function init() {
       container.removeAttribute("draggable");
       container.classList.remove("block");
     });
-    mode = "text";
     transitionBtn.textContent = `show ${mode}`;
+    mode = "text";
   }
   /* State logic */
   /* Event dispatchers */
