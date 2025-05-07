@@ -9,19 +9,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      BROWSER_PATH: /usr/bin/chromium-browser
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Create .env and load it into the job environment
+      - name: Install Chromium + required shared libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            chromium-browser \
+            libnss3 libatk-bridge2.0-0 libgtk-3-0 \
+            libx11-xcb1 libxcomposite1 libxdamage1 libxext6 \
+            libxfixes3 libxi6 libxrandr2 libxss1 libxtst6 \
+            libgbm1 fonts-liberation ca-certificates xdg-utils
+
+      - name: Create .env and export it
         shell: bash
         run: |
-          # TODO: do this in a better way if we add more variables
-          echo 'BROWSER_PATH=/usr/bin/chromium-browser' > .env
-          # currently this should not be needed but it *could* be in the future
+          cat <<'EOF' > .env
+          BROWSER_PATH=/usr/bin/chromium-browser
+          CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
+          EOF
+
+          # Export every key=value line in .env to subsequent steps
+          set -a
+          source .env
+          set +a
           cat .env >> "$GITHUB_ENV"
 
       - name: Set up Node
@@ -29,13 +42,6 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
-
-      - name: Ensure browser binary exists
-        run: |
-          if [ ! -x "$BROWSER_PATH" ]; then
-            sudo apt-get update
-            sudo apt-get install -y chromium-browser
-          fi
 
       - name: Install just
         run: |
@@ -45,4 +51,4 @@ jobs:
         run: npm ci
 
       - name: Run test suite
-        run: just test
+        run: just test "$BROWSER_PATH" $CHROME_ARGS
