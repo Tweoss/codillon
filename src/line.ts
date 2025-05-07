@@ -3,36 +3,7 @@ import createAutocomplete, {
   listCompletions,
   checkValidSyntax,
 } from "./autocomplete.js";
-import Block from "./block.js";
-import {
-  instructions,
-  noArgInstructions,
-  labelIndexInstructions,
-  labelIndexVectorLabelIndexInstructions,
-  funcIndexInstructions,
-  typeIndexInstructions,
-  localIndexInstructions,
-  globalIndexInstructions,
-  memoryArgumentInstructions,
-  i32Instructions,
-  i64Instructions,
-  f32Instructions,
-  f64Instructions,
-} from "./syntax.constants.js";
-import {
-  validateI32,
-  validateI64,
-  validateF32,
-  validateF64,
-  validateLabelIndex,
-  validateLabelIndexVectorLabelIndex,
-  validateFuncIndex,
-  validateTypeIndex,
-  validateLocalIndex,
-  validateGlobalIndex,
-  validateMemoryArgument,
-  validateUI32,
-} from "./instruction_arg_validation.js";
+import Block, { applySyntaxHighlighting, setCursor } from "./block.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -65,115 +36,6 @@ function clone() {
   return document.importNode(template.content, true);
 }
 
-function applySyntaxHighlighting(element: HTMLElement) {
-  const text = element.textContent || "";
-  const words = text.split(/(\s+)/); // Split on whitespace and keep the spaces
-
-  if (words.length === 0) return;
-
-  // Store cursor position
-  const selection = window.getSelection();
-  let cursorOffset = 0;
-  if (selection && selection.rangeCount > 0) {
-    const range = selection.getRangeAt(0);
-    cursorOffset = range.startOffset;
-  }
-
-  // Process each word and space
-  const spans = words
-    .map((word, index) => {
-      // Skip empty strings
-      if (word === "") return null;
-
-      const span = document.createElement("span");
-      span.textContent = word;
-
-      // Only apply styling to non-whitespace words
-      if (!/^\s+$/.test(word)) {
-        if (index === 0) {
-          // First word or word after whitespace is the instruction
-          if (instructions.includes(word)) {
-            span.className = "instruction";
-          }
-        } else if (index > 0 && /^\s+$/.test(words[index - 1])) {
-          // Get the instruction (first word)
-          const instruction = words[0];
-
-          // Apply appropriate validation and styling based on instruction type
-          if (labelIndexInstructions.includes(instruction)) {
-            if (validateLabelIndex(word)) {
-              span.className = "number";
-            }
-          } else if (
-            labelIndexVectorLabelIndexInstructions.includes(instruction)
-          ) {
-            if (validateLabelIndexVectorLabelIndex(word)) {
-              span.className = "number";
-            }
-          } else if (funcIndexInstructions.includes(instruction)) {
-            if (validateFuncIndex(word)) {
-              span.className = "number";
-            }
-          } else if (typeIndexInstructions.includes(instruction)) {
-            if (validateTypeIndex(word)) {
-              span.className = "number";
-            }
-          } else if (localIndexInstructions.includes(instruction)) {
-            if (validateLocalIndex(word)) {
-              span.className = "number";
-            }
-          } else if (globalIndexInstructions.includes(instruction)) {
-            if (validateGlobalIndex(word)) {
-              span.className = "number";
-            }
-          } else if (i32Instructions.includes(instruction)) {
-            if (validateI32(word)) {
-              span.className = "number";
-            }
-          } else if (i64Instructions.includes(instruction)) {
-            if (validateI64(word)) {
-              span.className = "number";
-            }
-          } else if (f32Instructions.includes(instruction)) {
-            if (validateF32(word)) {
-              span.className = "number";
-            }
-          } else if (f64Instructions.includes(instruction)) {
-            if (validateF64(word)) {
-              span.className = "number";
-            }
-          } else if (memoryArgumentInstructions.includes(instruction)) {
-            // right now this is applying the same styling to both arguments
-            if (validateUI32(word)) {
-              span.className = "number";
-            }
-          }
-        }
-      }
-
-      return span;
-    })
-    .filter(Boolean) as HTMLSpanElement[];
-
-  // Clear and rebuild content
-  element.innerHTML = "";
-  spans.forEach((span) => {
-    element.appendChild(span);
-  });
-
-  // Restore cursor position if we had a valid selection
-  if (selection && cursorOffset > 0) {
-    const newRange = document.createRange();
-    newRange.setStart(
-      element,
-      Math.min(cursorOffset, element.textContent?.length || 0),
-    );
-    newRange.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(newRange);
-  }
-}
-
 function init({
   addNewLine,
   deleteLine,
@@ -199,7 +61,8 @@ function init({
     autocomplete = createAutocomplete({
       onSelect: (s) => {
         block.setContent(s);
-        block.moveCursorToEnd();
+        lineElement.classList.remove("error");
+        applySyntaxHighlighting(block.div);
       },
     });
     const autoFrag = autocomplete({ list: completions });
@@ -243,7 +106,8 @@ function init({
       completions = listCompletions(block.getContent());
       if (block.getContent() && completions.length > 0) {
         block.setContent(completions[0]);
-        block.moveCursorToEnd();
+        lineElement.classList.remove("error");
+        applySyntaxHighlighting(block.div);
       } else {
         completionError();
       }
@@ -292,19 +156,14 @@ function init({
     }
     if (!checkValidSyntax(value)) {
       block.setContent(preValidState);
-    } else {
-      try {
-        applySyntaxHighlighting(block.div);
-      } catch (e) {
-        console.error("Error applying syntax highlighting:", e);
-      }
     }
+    applySyntaxHighlighting(block.div);
     lineElement.classList.remove("error");
     removeAutocomplete();
   });
   lineElement.addEventListener("click", (e) => {
     if (!block.div.contains(e.target as Node)) {
-      block.moveCursorToEnd();
+      setCursor(block.div, block.getContent().length);
       if (!autocomplete && block.getContent()) {
         addAutocomplete(completions);
       }
@@ -316,7 +175,7 @@ function init({
   function update(data: { content?: string; focus?: boolean } = {}) {
     if (data.content) block.setContent(data.content);
     if (data.focus && data.focus !== undefined) {
-      block.moveCursorToEnd();
+      setCursor(block.div, block.getContent().length);
     }
     return { frag, div: lineElement };
   }
