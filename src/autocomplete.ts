@@ -54,7 +54,6 @@ template.innerHTML = `<style>
   .autocomplete-list li {
     padding: 2px 4px;
     cursor: pointer;
-    transition: background 150 ease;
   }
   .autocomplete-list li:hover {
     background: #eee;

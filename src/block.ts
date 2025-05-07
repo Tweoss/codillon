@@ -46,17 +46,16 @@ template.innerHTML = `<style>
     padding: 1px 8px 3px;
     border-radius: 4px;
     cursor: move;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3),
-                itnset 4px 4px 8px rgba(255,255,255,0.2),
-                inset -4px -4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4),
+                inset 1px 1px 2px rgba(255,255,255,0.2),
+                inset -1px -1px 2px rgba(0,0,0,0.1);
     transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
     box-sizing: border-box;
     font-weight: bold;
   }
   .block:hover {
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4),
-                inset 1px 1px 2px rgba(255,255,255,0.2),
-                inset -1px -1px 2px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3),
+                inset 4px 4px 8px rgba(255,255,255,0.2);
   }
 </style><div class="container empty" contenteditable="plaintext-only" spellcheck="false"></div>`;
 
@@ -157,9 +156,7 @@ export function applySyntaxHighlighting(element: HTMLElement) {
   });
 
   // Restore cursor position if we had a valid selection
-  if (selection && cursorOffset > 0) {
-    setCursor(element, cursorOffset);
-  }
+  return cursorOffset;
 }
 
 export function setCursor(element: HTMLElement, finalPosition: number): void {

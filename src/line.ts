@@ -63,6 +63,7 @@ function init({
         block.setContent(s);
         lineElement.classList.remove("error");
         applySyntaxHighlighting(block.div);
+        setCursor(block.div, block.getContent().length);
       },
     });
     const autoFrag = autocomplete({ list: completions });
@@ -108,6 +109,7 @@ function init({
         block.setContent(completions[0]);
         lineElement.classList.remove("error");
         applySyntaxHighlighting(block.div);
+        setCursor(block.div, block.getContent().length);
       } else {
         completionError();
       }
