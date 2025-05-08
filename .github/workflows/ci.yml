@@ -28,8 +28,8 @@ jobs:
         run: |
           cat <<'EOF' > .env
           BROWSER_PATH=/usr/bin/chromium-browser
-          # CHROME_ARGS="--no-sandbox --disable-setuid-sandbox"
           EOF
+          # CHROME_ARGS="--no-sandbox --disable-setuid-sandbox"
 
           # Export every key=value line in .env to subsequent steps
           set -a
@@ -58,6 +58,9 @@ jobs:
 
       - name: Install project dependencies
         run: npm ci
+
+      - name: Build site assets
+        run: just build
 
       - name: Start web server
         shell: bash
