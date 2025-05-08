@@ -54,18 +54,23 @@ jobs:
           override: true
 
       - name: Install penguin CLI
-        run: cargo install penguin-app
+        shell: bash
+        run: |
+          if command -v penguin >/dev/null 2>&1; then
+            echo "penguin already installed – skipping compile"
+          else
+            cargo install penguin-app
+          fi
 
       - name: Install project dependencies
         run: npm ci
 
       - name: Build site assets
-        run:
-          just build
+        run: just build
 
-          # launch web server background
-          # wait until it starts
-          # expose PID for killing later (unnecessary?)
+      # launch web server background
+      # wait until it starts
+      # expose PID for killing later (unnecessary?)
       - name: Start web server
         shell: bash
         run: |
