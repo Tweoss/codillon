@@ -47,6 +47,15 @@ jobs:
         run: |
           curl -sL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install penguin CLI
+        run: cargo install penguin-app
+
       - name: Install project dependencies
         run: npm ci
 
