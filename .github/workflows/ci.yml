@@ -28,7 +28,7 @@ jobs:
         run: |
           cat <<'EOF' > .env
           BROWSER_PATH=/usr/bin/chromium-browser
-          CHROME_ARGS="--no-sandbox --disable-setuid-sandbox"
+          # CHROME_ARGS="--no-sandbox --disable-setuid-sandbox"
           EOF
 
           # Export every key=value line in .env to subsequent steps
@@ -50,5 +50,11 @@ jobs:
       - name: Install project dependencies
         run: npm ci
 
-      - name: Run test suite
-        run: just test
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb # tiny (≈ 8 MB) virtual X server
+
+      - name: Run test suite in a virtual display
+        # Starts Xvfb on the next free :99, exports DISPLAY, then runs your recipe.
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            just test
