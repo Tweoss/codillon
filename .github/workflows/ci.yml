@@ -50,11 +50,41 @@ jobs:
       - name: Install project dependencies
         run: npm ci
 
-      - name: Install Xvfb
-        run: sudo apt-get install -y xvfb # tiny (≈ 8 MB) virtual X server
-
-      - name: Run test suite in a virtual display
-        # Starts Xvfb on the next free :99, exports DISPLAY, then runs your recipe.
+      - name: Start web server
+        shell: bash
         run: |
-          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
-            just test
+          # 1) launch the app in the background
+          just serve &
+          SERVE_PID=$!
+
+          # 2) poll until it responds or 30 s pass
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080 >/dev/null; then
+              echo "Server is up ✅"
+              break
+            fi
+            echo "Waiting for server on port 8080… ($i/30)"
+            sleep 1
+          done
+
+          # 3) expose the PID so a later step can clean up
+          echo "SERVE_PID=$SERVE_PID" >> "$GITHUB_ENV"
+
+      - name: Run test suite
+        run: just test
+
+      - name: Stop web server
+        if: always()
+        run: |
+          if [[ -n "$SERVE_PID" ]]; then
+            kill "$SERVE_PID" || true
+          fi
+
+      # - name: Install Xvfb
+      #   run: sudo apt-get install -y xvfb # tiny (≈ 8 MB) virtual X server
+
+      # - name: Run test suite in a virtual display
+      #   # Starts Xvfb on the next free :99, exports DISPLAY, then runs your recipe.
+      #   run: |
+      #     xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+      #       just test
