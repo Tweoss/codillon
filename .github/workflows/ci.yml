@@ -13,16 +13,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      # - name: Install Chromium + required shared libraries
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y \
-      #       chromium-browser \
-      #       libnss3 libatk-bridge2.0-0 libgtk-3-0 \
-      #       libx11-xcb1 libxcomposite1 libxdamage1 libxext6 \
-      #       libxfixes3 libxi6 libxrandr2 libxss1 libxtst6 \
-      #       libgbm1 fonts-liberation ca-certificates xdg-utils
-
       - name: Create .env and export it
         shell: bash
         run: |
