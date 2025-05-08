@@ -13,21 +13,21 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Install Chromium + required shared libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            chromium-browser \
-            libnss3 libatk-bridge2.0-0 libgtk-3-0 \
-            libx11-xcb1 libxcomposite1 libxdamage1 libxext6 \
-            libxfixes3 libxi6 libxrandr2 libxss1 libxtst6 \
-            libgbm1 fonts-liberation ca-certificates xdg-utils
+      # - name: Install Chromium + required shared libraries
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y \
+      #       chromium-browser \
+      #       libnss3 libatk-bridge2.0-0 libgtk-3-0 \
+      #       libx11-xcb1 libxcomposite1 libxdamage1 libxext6 \
+      #       libxfixes3 libxi6 libxrandr2 libxss1 libxtst6 \
+      #       libgbm1 fonts-liberation ca-certificates xdg-utils
 
       - name: Create .env and export it
         shell: bash
         run: |
           cat <<'EOF' > .env
-          BROWSER_PATH=/usr/bin/chromium-browser
+          BROWSER_PATH=/usr/bin/google-chrome
           EOF
 
           # Export every key=value line in .env to subsequent steps
@@ -45,6 +45,17 @@ jobs:
       - name: Install just
         run: |
           curl -sL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+      # - name: Cache cargo registry + penguin binary
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cargo/registry
+      #       ~/.cargo/git
+      #       ~/.cargo/bin/penguin
+      #       # Optional: cache build artefacts too
+      #       ~/.cache/penguin
+      #     key: ${{ runner.os }}-cargo-penguin-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Set up Rust toolchain
         uses: actions-rs/toolchain@v1
