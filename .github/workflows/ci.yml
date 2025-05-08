@@ -29,7 +29,6 @@ jobs:
           cat <<'EOF' > .env
           BROWSER_PATH=/usr/bin/chromium-browser
           EOF
-          # CHROME_ARGS="--no-sandbox --disable-setuid-sandbox"
 
           # Export every key=value line in .env to subsequent steps
           set -a
@@ -60,16 +59,18 @@ jobs:
         run: npm ci
 
       - name: Build site assets
-        run: just build
+        run:
+          just build
 
+          # launch web server background
+          # wait until it starts
+          # expose PID for killing later (unnecessary?)
       - name: Start web server
         shell: bash
         run: |
-          # 1) launch the app in the background
           just serve &
           SERVE_PID=$!
 
-          # 2) poll until it responds or 30 s pass
           for i in {1..30}; do
             if curl -sf http://localhost:8080 >/dev/null; then
               echo "Server is up ✅"
@@ -79,17 +80,13 @@ jobs:
             sleep 1
           done
 
-          # 3) expose the PID so a later step can clean up
           echo "SERVE_PID=$SERVE_PID" >> "$GITHUB_ENV"
 
-      # - name: Run test suite
-      #   run: just test
-
+        # headless mode appeared to not work; a virtual display may not be needed if it works
       - name: Install Xvfb
-        run: sudo apt-get install -y xvfb # tiny (≈ 8 MB) virtual X server
+        run: sudo apt-get install -y xvfb
 
       - name: Run test suite in a virtual display
-        # Starts Xvfb on the next free :99, exports DISPLAY, then runs just test
         run: |
           xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
             just test

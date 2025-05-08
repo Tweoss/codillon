@@ -8,11 +8,14 @@ async function main() {
     console.error(usageString);
     process.exit(1);
   }
+  const extraArgs = (process.env.CHROME_ARGS ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
   const browser = await puppeteer.launch({
     executablePath: browserExecutablePath,
-    headless: false,
+    headless: process.env.CI ? true : false,
     waitForInitialPage: false,
-    args: ["--no-startup-window"],
+    args: ["--no-startup-window", ...extraArgs],
   });
   const new_page = async () => {
     const page = await browser.newPage();
