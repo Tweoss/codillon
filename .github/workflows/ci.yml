@@ -57,7 +57,7 @@ jobs:
         shell: bash
         run: |
           if command -v penguin >/dev/null 2>&1; then
-            echo "penguin already installed – skipping compile"
+            echo "penguin already installed - skipping compile"
           else
             cargo install penguin-app
           fi
