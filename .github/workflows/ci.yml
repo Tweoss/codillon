@@ -51,4 +51,4 @@ jobs:
         run: npm ci
 
       - name: Run test suite
-        run: just test "$BROWSER_PATH" $CHROME_ARGS
+        run: just test
