@@ -1,4 +1,4 @@
-export const noArgInstructions: string[] = [
+export const noArgInstructions = [
   "unreachable",
   "nop",
   "block",
@@ -122,18 +122,18 @@ export const noArgInstructions: string[] = [
   "i64.reinterpret_f64",
   "f32.reinterpret_i32",
   "f64.reinterpret_i64",
-];
-export const labelIndexInstructions: string[] = ["br", "br_if"];
-export const labelIndexVectorLabelIndexInstructions: string[] = ["br_table"];
-export const funcIndexInstructions: string[] = ["call"];
-export const typeIndexInstructions: string[] = ["call_indirect"];
-export const localIndexInstructions: string[] = [
+] as const;
+export const labelIndexInstructions = ["br", "br_if"] as const;
+export const labelIndexVectorLabelIndexInstructions = ["br_table"] as const;
+export const funcIndexInstructions = ["call"] as const;
+export const typeIndexInstructions = ["call_indirect"] as const;
+export const localIndexInstructions = [
   "local.get",
   "local.set",
   "local.tee",
-];
-export const globalIndexInstructions: string[] = ["global.get", "global.set"];
-export const memoryArgumentInstructions: string[] = [
+] as const;
+export const globalIndexInstructions = ["global.get", "global.set"] as const;
+export const memoryArgumentInstructions = [
   "i32.load",
   "i64.load",
   "f32.load",
@@ -157,13 +157,13 @@ export const memoryArgumentInstructions: string[] = [
   "i64.store8",
   "i64.store16",
   "i64.store32",
-];
-export const i32Instructions: string[] = ["i32.const"];
-export const i64Instructions: string[] = ["i64.const"];
-export const f32Instructions: string[] = ["f32.const"];
-export const f64Instructions: string[] = ["f64.const"];
+] as const;
+export const i32Instructions = ["i32.const"] as const;
+export const i64Instructions = ["i64.const"] as const;
+export const f32Instructions = ["f32.const"] as const;
+export const f64Instructions = ["f64.const"] as const;
 
-export const instructions: string[] = [
+export const instructions = [
   ...noArgInstructions,
   ...labelIndexInstructions,
   ...labelIndexVectorLabelIndexInstructions,
@@ -176,7 +176,9 @@ export const instructions: string[] = [
   ...i64Instructions,
   ...f32Instructions,
   ...f64Instructions,
-];
+] as const;
+
+export type InstructionName = (typeof instructions)[number];
 
 /* Data Bank Panel List */
 
