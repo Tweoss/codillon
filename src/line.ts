@@ -1,3 +1,4 @@
+import { AST, LineID, Location } from "./ast.js";
 import createAutocomplete, {
   Autocomplete,
   listCompletions,
@@ -37,11 +38,19 @@ function clone() {
 }
 
 function init({
+  wrapper: ast,
+  line_id,
   addNewLine,
+  addFunction,
   deleteLine,
+  getPrevLineInAST,
 }: {
-  addNewLine: (ref: Line) => void;
+  wrapper: { inner: AST };
+  line_id: LineID;
+  addNewLine: (focus: boolean, ref: Line) => void;
+  addFunction: (ref: Line | null, currentLine: Line) => void;
   deleteLine: (ref: Line) => void;
+  getPrevLineInAST: (ref: Line) => Line | null;
 }) {
   /* DOM variables */
   let frag = clone();
@@ -49,10 +58,11 @@ function init({
   const block = Block()();
   lineElement.appendChild(block.frag);
   let autocomplete: Autocomplete | null = null;
-  let completions = [] as string[];
-  let preValidState = "";
 
   /* State variables */
+  let completions = [] as string[];
+  let preValidState = "";
+  let saved_in_ast = false;
 
   /* DOM update functions */
   function addAutocomplete(completions: string[]): void {
@@ -121,10 +131,21 @@ function init({
       ? block.div.classList.remove("empty")
       : block.div.classList.add("empty");
     completions = listCompletions(value);
-    if (!checkValidSyntax(value)) {
+    const line = update;
+    const prev_line = getPrevLineInAST(line);
+    if (!prev_line) return;
+    if (
+      !ast.inner.place_instruction(
+        prev_line ? { after: prev_line().line_id } : "start",
+        [value, line_id],
+        false,
+      )
+    ) {
       lineElement.classList.add("error");
     } else {
       lineElement.classList.remove("error");
+      // TODO: verify this is wanted behavior (user edits a box to something valid, then invalid, then exits. should
+      // the box have the initial state or the most recent valid state)
       preValidState = value;
     }
     if (completions.length > 0) {
@@ -140,8 +161,34 @@ function init({
 
   function handleEnterKey(): void {
     const value: string = block.getContent();
-    if (!value || checkValidSyntax(value)) {
-      addNewLine(update);
+    console.log("handling ", value);
+    // TODO: handle updating a block (not just inserting)
+    const line = update;
+    const prev_line = getPrevLineInAST(line);
+    if (value.length == 0) {
+      addNewLine(true, update);
+      return;
+    }
+    if (value == "(func") {
+      if (saved_in_ast) {
+        addNewLine(true, update);
+        return;
+      }
+      // TODO: handle if there is already a function block.
+      addFunction(prev_line, update);
+      saved_in_ast = true;
+      return;
+    }
+    if (
+      ast.inner.place_instruction(
+        prev_line ? { after: prev_line().line_id } : "start",
+        [value, line_id],
+        true,
+      )
+    ) {
+      console.log(`saved ${value} in AST`);
+      saved_in_ast = true;
+      addNewLine(true, update);
     } else {
       completionError();
     }
@@ -156,7 +203,18 @@ function init({
     if (!value) {
       preValidState = "";
     }
-    if (!checkValidSyntax(value)) {
+    const line = update;
+    const prev_line = getPrevLineInAST(line);
+    // TODO: handle update
+    if (
+      ast.inner.place_instruction(
+        prev_line ? { after: prev_line().line_id } : "start",
+        [value, line_id],
+        true,
+      )
+    ) {
+      console.log("running focus out handler");
+      console.log(ast.inner);
       block.setContent(preValidState);
     }
     applySyntaxHighlighting(block.div);
@@ -178,12 +236,21 @@ function init({
 
   /* Initialization */
 
-  function update(data: { content?: string; focus?: boolean } = {}) {
+  function update(
+    data: { content?: string; focus?: boolean; saved_in_ast?: boolean } = {},
+  ) {
     if (data.content) block.setContent(data.content);
-    if (data.focus && data.focus !== undefined) {
+    if (data.focus && data.focus !== undefined)
       setCursor(block.div, block.getContent().length);
-    }
-    return { frag, div: lineElement };
+    if (data.saved_in_ast !== undefined) saved_in_ast = data.saved_in_ast;
+    return {
+      frag,
+      div: lineElement,
+      location,
+      saved_in_ast,
+      line_id,
+      content: block.getContent(),
+    };
   }
 
   return update;
