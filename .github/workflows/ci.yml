@@ -1,0 +1,105 @@
+name: Simple CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create .env and export it
+        shell: bash
+        run: |
+          cat <<'EOF' > .env
+          BROWSER_PATH=/usr/bin/google-chrome
+          EOF
+
+          # Export every key=value line in .env to subsequent steps
+          set -a
+          source .env
+          set +a
+          cat .env >> "$GITHUB_ENV"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install just
+        run: |
+          curl -sL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+      - name: Cache cargo registry + penguin binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/penguin
+            # Optional: cache build artefacts too
+            ~/.cache/penguin
+          key: ${{ runner.os }}-cargo-penguin-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install penguin CLI
+        shell: bash
+        run: |
+          if command -v penguin >/dev/null 2>&1; then
+            echo "penguin already installed - skipping compile"
+          else
+            cargo install penguin-app
+          fi
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Build site assets
+        run: just build
+
+      # launch web server background
+      # wait until it starts
+      # expose PID for killing later (unnecessary?)
+      - name: Start web server
+        shell: bash
+        run: |
+          just serve &
+          SERVE_PID=$!
+
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080 >/dev/null; then
+              echo "Server is up ✅"
+              break
+            fi
+            echo "Waiting for server on port 8080… ($i/30)"
+            sleep 1
+          done
+
+          echo "SERVE_PID=$SERVE_PID" >> "$GITHUB_ENV"
+
+        # headless mode appeared to not work; a virtual display may not be needed if it works
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+
+      - name: Run test suite in a virtual display
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+            just test
+
+      - name: Stop web server
+        if: always()
+        run: |
+          if [[ -n "$SERVE_PID" ]]; then
+            kill "$SERVE_PID" || true
+          fi
