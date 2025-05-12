@@ -207,16 +207,14 @@ function init({
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
     if (
-      ast.inner.place_instruction(
+      !ast.inner.place_instruction(
         prev_line ? { after: prev_line().line_id } : "start",
         [value, line_id],
         true,
       )
-    ) {
-      console.log("running focus out handler");
-      console.log(ast.inner);
+    )
       block.setContent(preValidState);
-    }
+
     applySyntaxHighlighting(block.div);
     lineElement.classList.remove("error");
     removeAutocomplete();
