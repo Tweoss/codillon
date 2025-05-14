@@ -1,6 +1,10 @@
 import Pane from "./pane.js";
 import BlockMenu from "./block_menu.js";
-import Block, { setAsBlock, setAsText } from "./block.js";
+import Block, {
+  applySyntaxHighlighting,
+  setAsBlock,
+  setAsText,
+} from "./block.js";
 import {
   instructions,
   noArgInstructions,
@@ -84,6 +88,7 @@ function init() {
       const blockInstance = Block();
       const { frag: blockFrag, div, setContent } = blockInstance();
       setContent(instruction);
+      applySyntaxHighlighting(div);
       setAsBlock(div);
       div.setAttribute("bank-block", "true");
       pane.appendChild(blockFrag);
