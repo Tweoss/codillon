@@ -1,6 +1,7 @@
 import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
+import BlockBank from "./block_bank.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -8,12 +9,12 @@ const template = document.createElement("template");
 template.innerHTML = `
   <style>
     #editor-container {
+      box-sizing: border-box;
       display: flex;
       border: 1px solid var(--border-color);
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      border-radius: 0 0 10px 10px;
       height: 300px;
-      margin: 0 20px 20px;
+      margin: 0 20px;
       overflow-y: auto;
     }
     #line-numbers {
@@ -54,6 +55,8 @@ function createEditor() {
   ] as const);
   const lineNumbersContainer = nodes["line-numbers"] as HTMLDivElement;
   const contentEditor = nodes["content-editor"] as HTMLDivElement;
+  const blockBank = BlockBank();
+  frag.append(blockBank);
   const menuBar = MenuBar();
   frag.prepend(menuBar);
 
