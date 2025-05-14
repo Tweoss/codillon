@@ -113,7 +113,7 @@ export async function wait_for_stdin(
 ): Promise<string> {
   // Skips waiting when in CI
   if (process.env.CI) {
-    return Promise.resolve("");
+    throw new Error("Test failed: debugging not supported in CI");
   }
   const int = createInterface({ output: process.stdout, input: process.stdin });
   const loc = get_location(2);
