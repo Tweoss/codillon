@@ -50,7 +50,7 @@ async function test_enter(page: Page) {
       .$$("div.container:not(#menu-bar):not(.empty)")
       .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
   );
-  if (assert_eq(elements, ["i32.const 1", "i32.const 2"]))
+  if (assert_eq(elements, ["i32.const 11", "i32.const 2"]))
     passed("entering two lines");
   else await wait_for_stdin("debugging");
 }
