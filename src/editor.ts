@@ -1,7 +1,7 @@
 import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
-import BlockBank from "./block_bank.js";
+import BlockBank from "./block_bank/block_bank.js";
 
 const DEFAULTS = { margin_width: 40 };
 

@@ -4,7 +4,7 @@ import Block, {
   applySyntaxHighlighting,
   setAsBlock,
   setAsText,
-} from "./block.js";
+} from "../block.js";
 import {
   instructions,
   noArgInstructions,
@@ -19,7 +19,7 @@ import {
   i64Instructions,
   f32Instructions,
   f64Instructions,
-} from "./syntax.constants.js";
+} from "../syntax.constants.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
