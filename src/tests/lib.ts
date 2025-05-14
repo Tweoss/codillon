@@ -111,6 +111,10 @@ export async function sleep(duration_ms: number) {
 export async function wait_for_stdin(
   prompt: string = "waiting for input",
 ): Promise<string> {
+  // Skips waiting when in CI
+  if (process.env.CI) {
+    return Promise.resolve("");
+  }
   const int = createInterface({ output: process.stdout, input: process.stdin });
   const loc = get_location(2);
   const line = await new Promise((r) =>
