@@ -99,23 +99,26 @@ function createEditor() {
 
   function getPrevLineInAST(line: Line): Line | null {
     const index = getCurrentLineIndex(line);
-    console.log(lines.map((l) => l()));
     const prev_line = lines.slice(0, index).findLast((l) => l().saved_in_ast);
     if (!prev_line) return null;
     return prev_line;
   }
 
-  function addFunction(ref: Line | null, startLine: Line) {
+  function addFunction(ref: Line | null, startLine: Line): boolean {
+    const loc = ref ? { after: ref().line_id } : "start";
+    if (!ast.inner!.place_function(loc, [0, 0], false)) return false;
     // Add the bottom paren and middle line
     const space_line = addNewLine(false, startLine);
     const paren_line = addNewLine(false, space_line);
-    paren_line({ content: ")" });
+    paren_line({ content: ")", saved_in_ast: true });
     space_line({ focus: true });
     // Insert into AST
-    ast.inner!.place_function(ref ? { after: ref().line_id } : "start", [
-      startLine().line_id,
-      paren_line().line_id,
-    ]);
+    ast.inner!.place_function(
+      loc,
+      [startLine().line_id, paren_line().line_id],
+      true,
+    );
+    return true;
   }
 
   function addNewLine(focus: boolean, referenceLine?: Line) {

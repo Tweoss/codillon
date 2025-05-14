@@ -48,7 +48,7 @@ function init({
   wrapper: { inner: AST };
   line_id: LineID;
   addNewLine: (focus: boolean, ref: Line) => void;
-  addFunction: (ref: Line | null, currentLine: Line) => void;
+  addFunction: (ref: Line | null, currentLine: Line) => boolean;
   deleteLine: (ref: Line) => void;
   getPrevLineInAST: (ref: Line) => Line | null;
 }) {
@@ -61,7 +61,7 @@ function init({
 
   /* State variables */
   let completions = [] as string[];
-  let preValidState = "";
+  let preValidState: string | null = null;
   let saved_in_ast = false;
 
   /* DOM update functions */
@@ -131,23 +131,6 @@ function init({
       ? block.div.classList.remove("empty")
       : block.div.classList.add("empty");
     completions = listCompletions(value);
-    const line = update;
-    const prev_line = getPrevLineInAST(line);
-    if (!prev_line) return;
-    if (
-      !ast.inner.place_instruction(
-        prev_line ? { after: prev_line().line_id } : "start",
-        [value, line_id],
-        false,
-      )
-    ) {
-      lineElement.classList.add("error");
-    } else {
-      lineElement.classList.remove("error");
-      // TODO: verify this is wanted behavior (user edits a box to something valid, then invalid, then exits. should
-      // the box have the initial state or the most recent valid state)
-      preValidState = value;
-    }
     if (completions.length > 0) {
       if (!autocomplete) {
         addAutocomplete(completions);
@@ -157,11 +140,28 @@ function init({
     } else {
       removeAutocomplete();
     }
+    const line = update;
+    const prev_line = getPrevLineInAST(line);
+    const location = prev_line ? { after: prev_line().line_id } : "start";
+    if (
+      (saved_in_ast && ast.inner.update_line([value, line_id], false)) ||
+      // TODO: maybe extract span of function so not necessary if save = false
+      (!saved_in_ast &&
+        ((value == "(func" &&
+          ast.inner.place_function(location, [0, 0], false)) ||
+          ast.inner.place_instruction(location, [value, line_id], false)))
+    ) {
+      lineElement.classList.remove("error");
+      // TODO: verify this is wanted behavior (user edits a box to something valid, then invalid, then exits. should
+      // the box have the initial state or the most recent valid state)
+      preValidState = value;
+    } else {
+      lineElement.classList.add("error");
+    }
   }
 
   function handleEnterKey(): void {
     const value: string = block.getContent();
-    console.log("handling ", value);
     // TODO: handle updating a block (not just inserting)
     const line = update;
     const prev_line = getPrevLineInAST(line);
@@ -175,8 +175,17 @@ function init({
         return;
       }
       // TODO: handle if there is already a function block.
-      addFunction(prev_line, update);
-      saved_in_ast = true;
+      if (addFunction(prev_line, update)) {
+        saved_in_ast = true;
+      }
+      return;
+    }
+    if (saved_in_ast) {
+      if (ast.inner.update_line([value, line_id], true)) {
+        addNewLine(true, update);
+      } else {
+        completionError();
+      }
       return;
     }
     if (
@@ -186,7 +195,6 @@ function init({
         true,
       )
     ) {
-      console.log(`saved ${value} in AST`);
       saved_in_ast = true;
       addNewLine(true, update);
     } else {
@@ -200,20 +208,21 @@ function init({
   lineElement.addEventListener("input", handleInput);
   lineElement.addEventListener("focusout", () => {
     let value = block.getContent().trim();
-    if (!value) {
-      preValidState = "";
-    }
     const line = update;
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
     if (
-      !ast.inner.place_instruction(
-        prev_line ? { after: prev_line().line_id } : "start",
-        [value, line_id],
-        true,
-      )
-    )
-      block.setContent(preValidState);
+      (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
+      (!saved_in_ast &&
+        !ast.inner.place_instruction(
+          prev_line ? { after: prev_line().line_id } : "start",
+          [value, line_id],
+          true,
+        ))
+    ) {
+      block.setContent(preValidState ?? "");
+      return;
+    }
 
     applySyntaxHighlighting(block.div);
     lineElement.classList.remove("error");
@@ -237,7 +246,10 @@ function init({
   function update(
     data: { content?: string; focus?: boolean; saved_in_ast?: boolean } = {},
   ) {
-    if (data.content) block.setContent(data.content);
+    if (data.content) {
+      block.setContent(data.content);
+      preValidState = data.content;
+    }
     if (data.focus && data.focus !== undefined)
       setCursor(block.div, block.getContent().length);
     if (data.saved_in_ast !== undefined) saved_in_ast = data.saved_in_ast;

@@ -39,18 +39,38 @@ export class AST {
     }
     return ParseResult.ok(new AST(functions));
   }
+  update_line([content, id]: [string, LineID], save: boolean): boolean {
+    for (const f of this.functions) {
+      if (f.span[0] == id) return content == "(func";
+      if (f.span[1] == id) return content == ")";
+      // TODO: other function entries.
+      for (let [i, prev] of f.body.entries()) {
+        if (prev.line != id) {
+          continue;
+        }
+        const instruction = parseInstructionWithArgs([content, id]);
+        if (instruction.result.type == "error") return false;
+        if (save) f.body[i] = instruction.result.value;
+        return true;
+      }
+    }
+    return false;
+  }
   place_function(
     location: { after: LineID } | "start",
     span: [LineID, LineID],
+    save: boolean,
   ): boolean {
     if (location == "start") {
-      this.functions.unshift(new Function([], null, [], [], span));
+      if (save) this.functions.unshift(new Function([], null, [], [], span));
       return true;
     }
     // Make sure location
     for (const [i, f] of this.functions.entries()) {
       if (location.after == f.span[1]) {
-        this.functions.splice(i + 1, 0, new Function([], null, [], [], span));
+        if (save)
+          this.functions.splice(i + 1, 0, new Function([], null, [], [], span));
+        return true;
       }
     }
     return false;
@@ -64,7 +84,6 @@ export class AST {
     if (location == "start") return false;
     // TODO: make these lazily evaluated? maybe
     const instruction = parseInstructionWithArgs(line);
-    console.log("trying to validate", instruction, "at", location);
 
     // TODO: don't linear search over whole document :D
     const ref = location.after;
@@ -75,7 +94,6 @@ export class AST {
       }
       // TODO: params, results, locals
       for (const [i, v] of f.body.entries()) {
-        console.log(`looking for the right instruction to add after: ${i}`, v);
         if (v.line == ref && instruction.result.type == "ok") {
           if (save) f.body.splice(i + 1, 0, instruction.result.value);
           return true;
