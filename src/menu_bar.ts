@@ -1,4 +1,5 @@
 import { get_nodes } from "./lib.js";
+import { setAsBlock, setAsText } from "./block.js";
 
 type Mode = "text" | "block";
 
@@ -12,6 +13,8 @@ template.innerHTML = `
       background: #eee;
       margin: 20px 20px 0;
       border-radius: 10px 10px 0 0;
+      border: 1px solid var(--border-color);
+      border-bottom: 0;
     }
     #menu-bar .right-buttons button {
       width: 100px;
@@ -57,24 +60,23 @@ function init() {
   /* DOM update functions */
   /* State update functions */
   function convertToBlock() {
-    document.querySelectorAll(".line .container").forEach((container) => {
-      container.removeAttribute("contentEditable");
-      if (!container.classList.contains("empty")) {
-        container.classList.add("block");
-        container.setAttribute("draggable", "true");
+    document.querySelectorAll(".line .block-container").forEach((block) => {
+      block.removeAttribute("contentEditable");
+      if (!block.classList.contains("empty")) {
+        setAsBlock(block as HTMLDivElement);
       }
     });
     transitionBtn.textContent = `show ${mode}`;
     mode = "block";
+    document.querySelector("#block-bank")?.classList.remove("hidden");
   }
   function convertToText() {
-    document.querySelectorAll(".line .container").forEach((container) => {
-      container.setAttribute("contentEditable", "plaintext-only");
-      container.removeAttribute("draggable");
-      container.classList.remove("block");
-    });
+    document
+      .querySelectorAll(".line .block-container")
+      .forEach((block) => setAsText(block as HTMLDivElement));
     transitionBtn.textContent = `show ${mode}`;
     mode = "text";
+    document.querySelector("#block-bank")?.classList.add("hidden");
   }
   /* State logic */
   /* Event dispatchers */

@@ -30,8 +30,8 @@ import {
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
-  .container {
-    width: fit-conent;
+  .block-container {
+    width: fit-content;
 		margin: 1px 0;
 		cursor: text;
   }
@@ -57,7 +57,21 @@ template.innerHTML = `<style>
     box-shadow: 0 4px 12px rgba(0,0,0,0.3),
                 inset 4px 4px 8px rgba(255,255,255,0.2);
   }
-</style><div class="container empty" contenteditable="plaintext-only" spellcheck="false"></div>`;
+</style><div class="block-container empty" contenteditable="plaintext-only" spellcheck="false"></div>`;
+
+export function setAsBlock(block: HTMLDivElement) {
+  block.classList.remove("empty");
+  block.classList.remove("selected");
+  block.classList.add("block");
+  block.setAttribute("draggable", "true");
+  block.removeAttribute("contentEditable");
+}
+
+export function setAsText(block: HTMLDivElement) {
+  block.classList.remove("block");
+  block.removeAttribute("draggable");
+  block.setAttribute("contentEditable", "plaintext-only");
+}
 
 export function applySyntaxHighlighting(element: HTMLElement) {
   const text = element.textContent || "";
@@ -192,7 +206,7 @@ function clone() {
 function init() {
   /* DOM variables */
   let frag = clone();
-  const blockElement = frag.querySelector(".container") as HTMLDivElement;
+  const blockElement = frag.querySelector(".block-container") as HTMLDivElement;
 
   /* State variables */
 
@@ -235,15 +249,13 @@ function init() {
       e.preventDefault();
       const draggedEl = (window as any).__draggedLine;
       if (draggedEl && draggedEl !== blockElement) {
-        blockElement.classList.remove("empty");
-        blockElement.classList.remove("selected");
-        blockElement.classList.add("block");
-        blockElement.setAttribute("draggable", "true");
+        setAsBlock(blockElement);
         blockElement.innerHTML = draggedEl.innerHTML;
-        draggedEl.innerHTML = "";
-        draggedEl.classList.remove("block");
-        draggedEl.classList.add("empty");
-        draggedEl.removeAttribute("draggable");
+        if (!draggedEl.hasAttribute("bank-block")) {
+          draggedEl.innerHTML = "";
+          draggedEl.classList.add("empty");
+          setAsText(draggedEl);
+        }
       }
     }
   });
