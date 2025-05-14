@@ -66,5 +66,5 @@ async function test_invalid_enter(page: Page) {
   );
   if (assert_eq(elements, ["invalid text"], "should have kept text"))
     passed("entering invalid line");
-  else await wait_for_stdin("debugging");
+  else if (!process.env.CI) await wait_for_stdin("debugging");
 }
