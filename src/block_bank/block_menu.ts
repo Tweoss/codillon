@@ -1,4 +1,4 @@
-import { get_nodes } from "./lib.js";
+import { get_nodes } from "../lib.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
