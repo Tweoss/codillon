@@ -1,8 +1,7 @@
 import { get_nodes } from "./lib.js";
 import { setAsBlock, setAsText } from "./block.js";
 import { AST } from "./ast.js";
-
-type Mode = "text" | "block";
+import { Mode } from "./editor.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -135,28 +134,17 @@ function init() {
   /* State logic */
   /* Event dispatchers */
   /* Event listeners */
-  transitionBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    mode === "text" ? convertToBlock() : convertToText();
-  });
 
-  runBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (!isRunning) {
-      console.log("Starting execution");
-      updateRunningState(true);
-    }
-  });
-
-  stopBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (isRunning) {
-      console.log("Stopping execution");
-      updateRunningState(false);
-    }
-  });
-
-  return frag;
+  return {
+    frag,
+    runBtn,
+    stepOverBtn,
+    stepIntoBtn,
+    stepOutBtn,
+    stopBtn,
+    transitionBtn,
+    stackVisualization,
+  };
 }
 
 export default init;

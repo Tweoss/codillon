@@ -4,6 +4,8 @@ import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
 
+export type Mode = "text" | "block";
+
 const DEFAULTS = { margin_width: 40 };
 
 const template = document.createElement("template");
@@ -59,12 +61,47 @@ function createEditor() {
   const blockBank = BlockBank();
   frag.append(blockBank);
   const menuBar = MenuBar();
-  frag.prepend(menuBar);
+  frag.prepend(menuBar.frag);
+  const runBtn = menuBar.runBtn;
+  const stepOverBtn = menuBar.stepOverBtn;
+  const stepIntoBtn = menuBar.stepIntoBtn;
+  const stepOutBtn = menuBar.stepOutBtn;
+  const stopBtn = menuBar.stopBtn;
+  const transitionBtn = menuBar.transitionBtn;
+  const stackVisualization = menuBar.stackVisualization;
 
   /* State variables. */
   const initial_lines = ["(func", ")", "(func", ")"] as string[];
   let lines: Line[] = [];
   let ast: { inner: AST | null } = { inner: null };
+  let isRunning: boolean = false;
+  let mode: Mode = "text";
+
+  /* State update functions */
+
+  function convertToBlock() {
+    document.querySelectorAll(".line .container").forEach((container) => {
+      container.removeAttribute("contentEditable");
+      if (!container.classList.contains("empty")) {
+        container.classList.add("block");
+        container.setAttribute("draggable", "true");
+      }
+    });
+    transitionBtn.textContent = `show ${mode}`;
+    mode = "block";
+  }
+
+  function convertToText() {
+    document.querySelectorAll(".line .container").forEach((container) => {
+      if (!isRunning) {
+        container.setAttribute("contentEditable", "plaintext-only");
+      }
+      container.removeAttribute("draggable");
+      container.classList.remove("block");
+    });
+    transitionBtn.textContent = `show ${mode}`;
+    mode = "text";
+  }
 
   function updateLineNumbers(): void {
     const lines = contentEditor.querySelectorAll(".line").length;
@@ -179,6 +216,54 @@ function createEditor() {
   // Seems like we need delay after page is loaded before focusing.
   requestAnimationFrame(() => {
     lines[0]({ focus: true });
+  });
+
+  // Add function to get current AST
+  function getCurrentAST(): AST | null {
+    return ast.inner;
+  }
+
+  // Add function to get current lines for AST parsing
+  function getCurrentLines(): [string, LineID][] {
+    return lines.map((l) => [l().content, l().line_id]);
+  }
+
+  /* DOM update functions */
+
+  function updateRunningState(running: boolean) {
+    isRunning = running;
+    stackVisualization.classList.toggle("visible", running);
+
+    // Disable/enable editing based on running state
+    document.querySelectorAll(".line .container").forEach((container) => {
+      if (running) {
+        container.removeAttribute("contentEditable");
+      } else if (mode === "text") {
+        container.setAttribute("contentEditable", "plaintext-only");
+      }
+    });
+  }
+
+  /* Event listeners */
+  transitionBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    mode === "text" ? convertToBlock() : convertToText();
+  });
+
+  runBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!isRunning) {
+      console.log("Starting execution with AST:", ast);
+      updateRunningState(true);
+    }
+  });
+
+  stopBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (isRunning) {
+      console.log("Stopping execution");
+      updateRunningState(false);
+    }
   });
 
   return frag;
