@@ -47,7 +47,7 @@ async function test_enter(page: Page) {
   await type_line(page, 2, "i32.const 2");
   const elements = await Promise.all(
     await page
-      .$$("div.container:not(#menu-bar):not(.empty)")
+      .$$("div.line .block-container:not(.empty)")
       .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
   );
   if (assert_eq(elements, ["i32.const 1", "i32.const 2"]))
@@ -61,7 +61,7 @@ async function test_invalid_enter(page: Page) {
   await type_line(page, 1, "invalid text\n");
   const elements = await Promise.all(
     await page
-      .$$("div.container:not(#menu-bar):not(.empty)")
+      .$$("div.line .block-container:not(.empty)")
       .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
   );
   if (assert_eq(elements, ["invalid text"], "should have kept text"))
