@@ -78,13 +78,31 @@ function createEditor() {
   let mode: Mode = "text";
 
   /* State update functions */
+  function updateRunningState(running: boolean) {
+    isRunning = running;
+    stackVisualization.classList.toggle("visible", running);
+
+    // Disable/enable editing based on running state
+    document.querySelectorAll(".line .container").forEach((container) => {
+      if (running) {
+        container.removeAttribute("contentEditable");
+        container.removeAttribute("draggable");
+      } else if (mode === "text") {
+        container.setAttribute("contentEditable", "plaintext-only");
+      } else if (mode === "block") {
+        container.setAttribute("draggable", "true");
+      }
+    });
+  }
 
   function convertToBlock() {
     document.querySelectorAll(".line .container").forEach((container) => {
       container.removeAttribute("contentEditable");
       if (!container.classList.contains("empty")) {
         container.classList.add("block");
-        container.setAttribute("draggable", "true");
+        if (!isRunning) {
+          container.setAttribute("draggable", "true");
+        }
       }
     });
     transitionBtn.textContent = `show ${mode}`;
@@ -226,22 +244,6 @@ function createEditor() {
   // Add function to get current lines for AST parsing
   function getCurrentLines(): [string, LineID][] {
     return lines.map((l) => [l().content, l().line_id]);
-  }
-
-  /* DOM update functions */
-
-  function updateRunningState(running: boolean) {
-    isRunning = running;
-    stackVisualization.classList.toggle("visible", running);
-
-    // Disable/enable editing based on running state
-    document.querySelectorAll(".line .container").forEach((container) => {
-      if (running) {
-        container.removeAttribute("contentEditable");
-      } else if (mode === "text") {
-        container.setAttribute("contentEditable", "plaintext-only");
-      }
-    });
   }
 
   /* Event listeners */
