@@ -41,16 +41,27 @@ async function type_line(page: Page, index: number, text: string) {
 async function test_enter(page: Page) {
   // This refocuses the page somehow.
   await page.keyboard.press("Enter");
-  await type_line(page, 1, "i32.const 1\n");
+  await type_line(page, 1, "\n");
   // Our code takes a bit of time to run after we insert a new line.
   await sleep(10);
-  await type_line(page, 2, "i32.const 2");
+  await type_line(page, 2, "i32.const 1\n");
+  await sleep(10);
+  await type_line(page, 3, "i32.const 2");
   const elements = await Promise.all(
     await page
       .$$("div.line .block-container:not(.empty)")
       .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
   );
-  if (assert_eq(elements, ["i32.const 1", "i32.const 2"]))
+  if (
+    assert_eq(elements, [
+      "(func",
+      "i32.const 1",
+      "i32.const 2",
+      ")",
+      "(func",
+      ")",
+    ])
+  )
     passed("entering two lines");
   else await wait_for_stdin("debugging");
 }
@@ -58,13 +69,21 @@ async function test_enter(page: Page) {
 // We should be able not be able to enter an invalid line.
 async function test_invalid_enter(page: Page) {
   await page.keyboard.press("Enter");
-  await type_line(page, 1, "invalid text\n");
+  await type_line(page, 1, "\n");
+  await sleep(10);
+  await type_line(page, 2, "invalid text\n");
   const elements = await Promise.all(
     await page
       .$$("div.line .block-container:not(.empty)")
       .then((els) => els.map((el) => el.evaluate((el) => el.innerText))),
   );
-  if (assert_eq(elements, ["invalid text"], "should have kept text"))
+  if (
+    assert_eq(
+      elements,
+      ["(func", "invalid text", ")", "(func", ")"],
+      "should have kept text",
+    )
+  )
     passed("entering invalid line");
   else await wait_for_stdin("debugging");
 }
