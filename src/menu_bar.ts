@@ -27,6 +27,7 @@ template.innerHTML = `
       <button id="step-over-button" class="button press-effect">Step Over</button>
       <button id="step-into-button" class="button press-effect">Step Into</button>
       <button id="step-out-button" class="button press-effect">Step Out</button>
+      <button id="stop-btn" class="button press-effect">Stop</button>
     </div>
     <div class="right-buttons">
       <button id="transition-btn" class="button press-effect">show block</button>
@@ -47,12 +48,14 @@ function init() {
     "step-into-btn",
     "step-out-btn",
     "transition-btn",
+    "stop-btn",
   ] as const);
   const menuBar = frag.querySelector("#menu-bar") as HTMLDivElement;
   const runBtn = nodes["run-btn"] as HTMLButtonElement;
   const stepOverBtn = nodes["step-over-btn"] as HTMLButtonElement;
   const stepIntoBtn = nodes["step-into-btn"] as HTMLButtonElement;
   const stepOutBtn = nodes["step-out-btn"] as HTMLButtonElement;
+  const stopBtn = nodes["stop-btn"] as HTMLButtonElement;
   const transitionBtn = nodes["transition-btn"] as HTMLButtonElement;
 
   /* State variables. */
