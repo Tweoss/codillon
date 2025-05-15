@@ -1,24 +1,12 @@
 import Pane from "./pane.js";
 import BlockMenu from "./block_menu.js";
-import Block, {
-  applySyntaxHighlighting,
-  setAsBlock,
-  setAsText,
-} from "../block.js";
+import Block, { applySyntaxHighlighting, setAsBlock } from "../block.js";
 import {
-  instructions,
-  noArgInstructions,
-  labelIndexInstructions,
-  labelIndexVectorLabelIndexInstructions,
-  funcIndexInstructions,
-  typeIndexInstructions,
-  localIndexInstructions,
-  globalIndexInstructions,
-  memoryArgumentInstructions,
-  i32Instructions,
-  i64Instructions,
-  f32Instructions,
-  f64Instructions,
+  controlInstructions,
+  parametricInstructions,
+  variableInstructions,
+  memoryInstructions,
+  numericInstructions,
 } from "../syntax.constants.js";
 
 const template = document.createElement("template");
@@ -66,12 +54,14 @@ function init() {
   /* State variables. */
   const tabPanes: { [tab: string]: HTMLDivElement } = {};
   const tabMapping: { [key: string]: string[] } = {
-    noArg: noArgInstructions,
-    labelIndex: labelIndexInstructions,
-    i32: i32Instructions,
-    i64: i64Instructions,
-    f32: f32Instructions,
-    f64: f64Instructions,
+    control: controlInstructions,
+    parametric: parametricInstructions,
+    variable: variableInstructions,
+    memory: memoryInstructions,
+    i32: numericInstructions["i32"],
+    i64: numericInstructions["i64"],
+    f32: numericInstructions["f32"],
+    f64: numericInstructions["f64"],
   };
   /* DOM update functions */
   function showTab(selectedTab: string) {
@@ -104,7 +94,7 @@ function init() {
     showTab(selectedTab);
   });
 
-  showTab("noArg");
+  showTab("control");
   return frag;
 }
 

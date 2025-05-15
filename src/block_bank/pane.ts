@@ -5,7 +5,7 @@ template.innerHTML = `
       width: 100%;
       padding: 10px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       background: white;
     }
