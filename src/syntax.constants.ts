@@ -236,6 +236,7 @@ export const memoryInstructions: string[] = [
 
 export const numericInstructions = {
   i32: [
+    "i32.const",
     "i32.eqz",
     "i32.eq",
     "i32.ne",
@@ -272,6 +273,7 @@ export const numericInstructions = {
     "i32.trunc_f64_u",
   ],
   i64: [
+    "i64.const",
     "i64.eqz",
     "i64.eq",
     "i64.ne",
@@ -309,6 +311,7 @@ export const numericInstructions = {
     "i64.trunc_f64_u",
   ],
   f32: [
+    "f32.const",
     "f32.abs",
     "f32.neg",
     "f32.ceil",
@@ -331,6 +334,7 @@ export const numericInstructions = {
     "f32.reinterpret_i32",
   ],
   f64: [
+    "f64.const",
     "f64.abs",
     "f64.neg",
     "f64.ceil",
