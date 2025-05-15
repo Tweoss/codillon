@@ -1,5 +1,6 @@
 import { get_nodes } from "./lib.js";
 import { setAsBlock, setAsText } from "./block.js";
+import { AST } from "./ast.js";
 
 type Mode = "text" | "block";
 
@@ -20,6 +21,28 @@ template.innerHTML = `
       width: 100px;
       margin-right: 0;
     }
+    #stack-visualization {
+      display: none;
+      position: absolute;
+      right: 20px;
+      top: 100px;
+      width: 200px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      font-family: monospace;
+    }
+    #stack-visualization.visible {
+      display: block;
+    }
+    .stack-item {
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+    }
+    .stack-item:last-child {
+      border-bottom: none;
+    }
   </style>
   <div id="menu-bar" class="container">
     <div class="left-buttons">
@@ -32,6 +55,10 @@ template.innerHTML = `
     <div class="right-buttons">
       <button id="transition-btn" class="button press-effect">show block</button>
     </div>
+  </div>
+  <div id="stack-visualization">
+    <h3>Execution Stack</h3>
+    <div id="stack-items"></div>
   </div>
 `;
 
@@ -57,10 +84,30 @@ function init() {
   const stepOutBtn = nodes["step-out-btn"] as HTMLButtonElement;
   const stopBtn = nodes["stop-btn"] as HTMLButtonElement;
   const transitionBtn = nodes["transition-btn"] as HTMLButtonElement;
+  const stackVisualization = frag.querySelector(
+    "#stack-visualization",
+  ) as HTMLDivElement;
+  const stackItems = frag.querySelector("#stack-items") as HTMLDivElement;
 
   /* State variables. */
   let mode: Mode = "text";
+  let isRunning: boolean = false;
+
   /* DOM update functions */
+  function updateRunningState(running: boolean) {
+    isRunning = running;
+    stackVisualization.classList.toggle("visible", running);
+
+    // Disable/enable editing based on running state
+    document.querySelectorAll(".line .block-container").forEach((container) => {
+      if (running) {
+        container.removeAttribute("contentEditable");
+      } else if (mode === "text") {
+        container.setAttribute("contentEditable", "plaintext-only");
+      }
+    });
+  }
+
   /* State update functions */
   function convertToBlock() {
     document.querySelectorAll(".line .block-container").forEach((block) => {
@@ -73,10 +120,14 @@ function init() {
     mode = "block";
     document.querySelector("#block-bank")?.classList.remove("hidden");
   }
+
   function convertToText() {
-    document
-      .querySelectorAll(".line .block-container")
-      .forEach((block) => setAsText(block as HTMLDivElement));
+    document.querySelectorAll(".line .block-container").forEach((container) => {
+      setAsText(container as HTMLDivElement);
+      if (isRunning) {
+        container.removeAttribute("contentEditable");
+      }
+    });
     transitionBtn.textContent = `show ${mode}`;
     mode = "text";
     document.querySelector("#block-bank")?.classList.add("hidden");
@@ -87,6 +138,22 @@ function init() {
   transitionBtn.addEventListener("click", (e) => {
     e.preventDefault();
     mode === "text" ? convertToBlock() : convertToText();
+  });
+
+  runBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!isRunning) {
+      console.log("Starting execution");
+      updateRunningState(true);
+    }
+  });
+
+  stopBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (isRunning) {
+      console.log("Stopping execution");
+      updateRunningState(false);
+    }
   });
 
   return frag;
