@@ -1,7 +1,7 @@
 import { get_nodes } from "./lib.js";
 import { setAsBlock, setAsText } from "./block.js";
 import { AST } from "./ast.js";
-import { Mode } from "./editor.js";
+import { globalStates } from "./global_variables.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -89,23 +89,8 @@ function init() {
   const stackItems = frag.querySelector("#stack-items") as HTMLDivElement;
 
   /* State variables. */
-  let mode: Mode = "text";
-  let isRunning: boolean = false;
 
   /* DOM update functions */
-  function updateRunningState(running: boolean) {
-    isRunning = running;
-    stackVisualization.classList.toggle("visible", running);
-
-    // Disable/enable editing based on running state
-    document.querySelectorAll(".line .block-container").forEach((container) => {
-      if (running) {
-        container.removeAttribute("contentEditable");
-      } else if (mode === "text") {
-        container.setAttribute("contentEditable", "plaintext-only");
-      }
-    });
-  }
 
   /* State update functions */
   function convertToBlock() {
@@ -114,21 +99,24 @@ function init() {
       if (!block.classList.contains("empty")) {
         setAsBlock(block as HTMLDivElement);
       }
+      if (globalStates.isRunning) {
+        block.removeAttribute("draggeable");
+      }
     });
-    transitionBtn.textContent = `show ${mode}`;
-    mode = "block";
+    transitionBtn.textContent = `show ${globalStates.mode}`;
+    globalStates.mode = "block";
     document.querySelector("#block-bank")?.classList.remove("hidden");
   }
 
   function convertToText() {
     document.querySelectorAll(".line .block-container").forEach((container) => {
       setAsText(container as HTMLDivElement);
-      if (isRunning) {
+      if (globalStates.isRunning) {
         container.removeAttribute("contentEditable");
       }
     });
-    transitionBtn.textContent = `show ${mode}`;
-    mode = "text";
+    transitionBtn.textContent = `show ${globalStates.mode}`;
+    globalStates.mode = "text";
     document.querySelector("#block-bank")?.classList.add("hidden");
   }
   /* State logic */
@@ -136,7 +124,7 @@ function init() {
   /* Event listeners */
   transitionBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    mode === "text" ? convertToBlock() : convertToText();
+    globalStates.mode === "text" ? convertToBlock() : convertToText();
   });
 
   return {

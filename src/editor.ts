@@ -4,8 +4,7 @@ import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
 import { Execution, createExecution } from "./execute.js";
-
-export type Mode = "text" | "block";
+import { globalStates } from "./global_variables.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -79,24 +78,22 @@ function createEditor() {
   const initial_lines = ["(func", ")", "(func", ")"] as string[];
   let lines: Line[] = [];
   let ast: { inner: AST | null } = { inner: null };
-  let isRunning: boolean = false;
-  let mode: Mode = "text";
   let currentExecution: Execution | null = null;
 
   /* State update functions */
   function updateRunningState(running: boolean) {
-    isRunning = running;
+    globalStates.isRunning = running;
     stackVisualization.classList.toggle("visible", running);
 
     // Disable/enable editing based on running state
-    document.querySelectorAll(".line .container").forEach((container) => {
+    document.querySelectorAll(".line .block-container").forEach((container) => {
       if (running) {
         container.removeAttribute("contentEditable");
         container.removeAttribute("draggable");
         container.classList.remove("executing");
-      } else if (mode === "text") {
+      } else if (globalStates.mode === "text") {
         container.setAttribute("contentEditable", "plaintext-only");
-      } else if (mode === "block") {
+      } else if (globalStates.mode === "block") {
         container.setAttribute("draggable", "true");
       }
     });
@@ -231,7 +228,7 @@ function createEditor() {
 
   runBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    if (!isRunning && ast.inner) {
+    if (!globalStates.isRunning && ast.inner) {
       console.log("Starting execution with AST:", ast);
       currentExecution = createExecution(ast.inner, stackVisualization, lines);
       if (currentExecution) {
@@ -242,7 +239,7 @@ function createEditor() {
 
   stopBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    if (isRunning) {
+    if (globalStates.isRunning) {
       console.log("Stopping execution");
       currentExecution = null;
       updateRunningState(false);
@@ -254,7 +251,7 @@ function createEditor() {
 
   stepOverBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    if (isRunning && currentExecution) {
+    if (globalStates.isRunning && currentExecution) {
       const hasMore = currentExecution.step();
       if (!hasMore) {
         currentExecution = null;

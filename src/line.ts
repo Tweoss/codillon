@@ -5,6 +5,7 @@ import createAutocomplete, {
   checkValidSyntax,
 } from "./autocomplete.js";
 import Block, { applySyntaxHighlighting, setCursor } from "./block.js";
+import { globalStates } from "./global_variables.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -66,7 +67,7 @@ function init({
 
   /* DOM update functions */
   function addAutocomplete(completions: string[]): void {
-    if (!completions) return;
+    if (!completions || globalStates.isRunning) return;
     removeAutocomplete();
     autocomplete = createAutocomplete({
       onSelect: (s) => {
