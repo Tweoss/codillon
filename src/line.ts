@@ -221,7 +221,6 @@ function init({
         ))
     ) {
       block.setContent(preValidState ?? "");
-      return;
     }
 
     applySyntaxHighlighting(block.div);
