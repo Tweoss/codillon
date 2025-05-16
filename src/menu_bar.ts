@@ -46,9 +46,9 @@ template.innerHTML = `
   <div id="menu-bar" class="container">
     <div class="left-buttons">
       <button id="run-btn" class="button press-effect">Run</button>
-      <button id="step-over-button" class="button press-effect">Step Over</button>
-      <button id="step-into-button" class="button press-effect">Step Into</button>
-      <button id="step-out-button" class="button press-effect">Step Out</button>
+      <button id="step-over-btn" class="button press-effect">Step Over</button>
+      <button id="step-into-btn" class="button press-effect">Step Into</button>
+      <button id="step-out-btn" class="button press-effect">Step Out</button>
       <button id="stop-btn" class="button press-effect">Stop</button>
     </div>
     <div class="right-buttons">

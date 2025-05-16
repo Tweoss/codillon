@@ -116,7 +116,7 @@ export class AST {
   // }
   get_autocomplete(location: Location, match: string) {}
 }
-class Function {
+export class Function {
   argument_types: { type: Type; label?: string }[];
   return_type: Type | null;
   locals: string[];
@@ -176,10 +176,10 @@ class Function {
   }
 }
 export type LineID = number;
-type Type = "i32" | "i64" | "f32" | "f64";
-type Instruction = { name: InstructionName; line: LineID };
-type InstructionWithLabel = Instruction & { label: string | number };
-type InstructionWithImmediate = Instruction & { argument: number };
+export type Type = "i32" | "i64" | "f32" | "f64";
+export type Instruction = { name: InstructionName; line: LineID };
+export type InstructionWithLabel = Instruction & { label: string | number };
+export type InstructionWithImmediate = Instruction & { argument: number };
 type ResultType<T> =
   | { type: "error"; error: string; line: LineID }
   | { type: "ok"; value: T };

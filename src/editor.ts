@@ -3,6 +3,7 @@ import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
+import { Execution, createExecution } from "./execute.js";
 
 export type Mode = "text" | "block";
 
@@ -35,6 +36,10 @@ template.innerHTML = `
       white-space: pre;
       line-height: 20px;
       background: white;
+    }
+    .executing {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
     }
   </style>
   <div id="editor-container">
@@ -76,6 +81,7 @@ function createEditor() {
   let ast: { inner: AST | null } = { inner: null };
   let isRunning: boolean = false;
   let mode: Mode = "text";
+  let currentExecution: Execution | null = null;
 
   /* State update functions */
   function updateRunningState(running: boolean) {
@@ -87,6 +93,7 @@ function createEditor() {
       if (running) {
         container.removeAttribute("contentEditable");
         container.removeAttribute("draggable");
+        container.classList.remove("executing");
       } else if (mode === "text") {
         container.setAttribute("contentEditable", "plaintext-only");
       } else if (mode === "block") {
@@ -254,9 +261,12 @@ function createEditor() {
 
   runBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    if (!isRunning) {
+    if (!isRunning && ast.inner) {
       console.log("Starting execution with AST:", ast);
-      updateRunningState(true);
+      currentExecution = createExecution(ast.inner, stackVisualization, lines);
+      if (currentExecution) {
+        updateRunningState(true);
+      }
     }
   });
 
@@ -264,7 +274,22 @@ function createEditor() {
     e.preventDefault();
     if (isRunning) {
       console.log("Stopping execution");
+      currentExecution = null;
       updateRunningState(false);
+      document.querySelectorAll(".line").forEach((container) => {
+        container.classList.remove("executing");
+      });
+    }
+  });
+
+  stepOverBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (isRunning && currentExecution) {
+      const hasMore = currentExecution.step();
+      if (!hasMore) {
+        currentExecution = null;
+        updateRunningState(false);
+      }
     }
   });
 
