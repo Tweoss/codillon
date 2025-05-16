@@ -723,7 +723,6 @@ export class Execution {
             return;
           }
           break;
-          return;
 
         default:
           console.log("Unhandled instruction:", name);
