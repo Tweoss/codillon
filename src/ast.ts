@@ -39,6 +39,7 @@ export class AST {
     }
     return ParseResult.ok(new AST(functions));
   }
+  // TODO: removing instruction
   update_line([content, id]: [string, LineID], save: boolean): boolean {
     for (const f of this.functions) {
       if (f.span[0] == id) return content == "(func";
