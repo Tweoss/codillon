@@ -255,6 +255,7 @@ function init() {
           draggedEl.innerHTML = "";
           draggedEl.classList.add("empty");
           setAsText(draggedEl);
+          draggedEl.removeAttribute("contentEditable");
         }
       }
     }

@@ -134,6 +134,10 @@ function init() {
   /* State logic */
   /* Event dispatchers */
   /* Event listeners */
+  transitionBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    mode === "text" ? convertToBlock() : convertToText();
+  });
 
   return {
     frag,

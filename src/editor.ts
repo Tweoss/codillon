@@ -102,32 +102,6 @@ function createEditor() {
     });
   }
 
-  function convertToBlock() {
-    document.querySelectorAll(".line .container").forEach((container) => {
-      container.removeAttribute("contentEditable");
-      if (!container.classList.contains("empty")) {
-        container.classList.add("block");
-        if (!isRunning) {
-          container.setAttribute("draggable", "true");
-        }
-      }
-    });
-    transitionBtn.textContent = `show ${mode}`;
-    mode = "block";
-  }
-
-  function convertToText() {
-    document.querySelectorAll(".line .container").forEach((container) => {
-      if (!isRunning) {
-        container.setAttribute("contentEditable", "plaintext-only");
-      }
-      container.removeAttribute("draggable");
-      container.classList.remove("block");
-    });
-    transitionBtn.textContent = `show ${mode}`;
-    mode = "text";
-  }
-
   function updateLineNumbers(): void {
     const lines = contentEditor.querySelectorAll(".line").length;
     lineNumbersContainer.innerHTML = Array.from(
@@ -220,7 +194,7 @@ function createEditor() {
     lines[i]({ content: initial_lines[i], saved_in_ast: true });
   }
 
-  const dbg = <T,>(v: T) => {
+  const dbg = <T>(v: T) => {
     console.log(v);
     return v;
   };
@@ -254,10 +228,6 @@ function createEditor() {
   }
 
   /* Event listeners */
-  transitionBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    mode === "text" ? convertToBlock() : convertToText();
-  });
 
   runBtn.addEventListener("click", (e) => {
     e.preventDefault();
