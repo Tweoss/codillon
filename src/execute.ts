@@ -119,6 +119,9 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] + b[1]]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.sub":
@@ -130,6 +133,9 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] - b[1]]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.mul":
@@ -141,6 +147,29 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] * b[1]]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.div_u":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            const lhs = a[1] >>> 0;
+            const rhs = b[1] >>> 0;
+            if (rhs === 0) {
+              this.error = true; // divide by zero trap
+              return;
+            }
+            this.stack.push(["i32", (lhs / rhs) >>> 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.div_s":
@@ -151,7 +180,16 @@ export class Execution {
               this.error = true;
               return;
             }
-            this.stack.push(["i32", Math.floor(a[1] / b[1])]);
+            const lhs = a[1] | 0;
+            const rhs = b[1] | 0;
+            if (rhs === 0 || (lhs === -2147483648 && rhs === -1)) {
+              this.error = true; // divide by zero or overflow trap
+              return;
+            }
+            this.stack.push(["i32", (lhs / rhs) | 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.eq":
@@ -163,6 +201,9 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] === b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.ne":
@@ -174,6 +215,9 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] !== b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.lt_s":
@@ -196,6 +240,9 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] > b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.le_s":
@@ -207,6 +254,9 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] <= b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.ge_s":
@@ -218,6 +268,9 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] >= b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "i32.eqz":
@@ -228,11 +281,17 @@ export class Execution {
               return;
             }
             this.stack.push(["i32", a[1] === 0 ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "drop":
           if (this.stack.length >= 1) {
             this.stack.pop();
+          } else {
+            this.error = true;
+            return;
           }
           break;
         case "select":
@@ -245,8 +304,318 @@ export class Execution {
               return;
             }
             this.stack.push(c[1] !== 0 ? a : b);
+          } else {
+            this.error = true;
+            return;
           }
           break;
+        case "i32.lt_u":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] < b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.gt_u":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] > b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.le_u":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] <= b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.ge_u":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] >= b[1] ? 1 : 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.clz":
+          if (this.stack.length >= 1) {
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", Math.clz32(a[1])]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.ctz":
+          if (this.stack.length >= 1) {
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            const val = a[1] >>> 0; // ensure unsigned
+            const ctz =
+              val === 0
+                ? 32
+                : (() => {
+                    let n = 0;
+                    for (let i = 0; i < 32; i++) {
+                      if ((val & (1 << i)) !== 0) break;
+                      n++;
+                    }
+                    return n;
+                  })();
+            this.stack.push(["i32", ctz]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.popcnt":
+          if (this.stack.length >= 1) {
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push([
+              "i32",
+              (a[1] >>> 0).toString(2).split("1").length - 1,
+            ]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.rem_s":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            const lhs = a[1] | 0;
+            const rhs = b[1] | 0;
+            if (rhs === 0) {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", lhs % rhs]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.rem_u":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            const lhs = a[1] >>> 0;
+            const rhs = b[1] >>> 0;
+            if (rhs === 0) {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", lhs % rhs >>> 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.and":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] & b[1]]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.or":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] | b[1]]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.xor":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] ^ b[1]]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.and":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] & b[1]]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.or":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] | b[1]]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.xor":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] ^ b[1]]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.shl":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", (a[1] << (b[1] & 31)) | 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.shr_s":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] >> (b[1] & 31)]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.shr_u":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] >>> (b[1] & 31)]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.rotl":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            const l = b[1] & 31;
+            this.stack.push(["i32", ((a[1] << l) | (a[1] >>> (32 - l))) >>> 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+        case "i32.rotr":
+          if (this.stack.length >= 2) {
+            const b = this.stack.pop()!;
+            const a = this.stack.pop()!;
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            const r = b[1] & 31;
+            this.stack.push(["i32", ((a[1] >>> r) | (a[1] << (32 - r))) >>> 0]);
+          } else {
+            this.error = true;
+            return;
+          }
+          break;
+
         default:
           console.log("Unhandled instruction:", name);
           // For now, treat all other instructions as nops
