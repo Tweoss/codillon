@@ -99,13 +99,25 @@ export class Execution {
 
     // Handle numeric instructions
     if (i32Instructions.includes(name as any)) {
-      this.stack.push(["i32", instruction.argument]);
+      this.stack.push([
+        "i32",
+        (instruction as InstructionWithImmediate).argument,
+      ]);
     } else if (i64Instructions.includes(name as any)) {
-      this.stack.push(["i64", instruction.argument]);
+      this.stack.push([
+        "i64",
+        (instruction as InstructionWithImmediate).argument,
+      ]);
     } else if (f32Instructions.includes(name as any)) {
-      this.stack.push(["f32", instruction.argument]);
+      this.stack.push([
+        "f32",
+        (instruction as InstructionWithImmediate).argument,
+      ]);
     } else if (f64Instructions.includes(name as any)) {
-      this.stack.push(["f64", instruction.argument]);
+      this.stack.push([
+        "f64",
+        (instruction as InstructionWithImmediate).argument,
+      ]);
     } else if (noArgInstructions.includes(name as any)) {
       switch (name) {
         case "i32.add":
