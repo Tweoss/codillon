@@ -13,9 +13,10 @@ import {
   f32Instructions,
   f64Instructions,
   InstructionName,
+  DataType,
 } from "./syntax.constants.js";
 
-type StackValue = number;
+type StackValue = [DataType, number];
 
 export class Execution {
   private stack: StackValue[] = [];
@@ -25,12 +26,18 @@ export class Execution {
   private lines: Line[] = [];
   // used to remove highlight from old line
   private oldLine: Line | null = null;
+  private error: boolean = false;
 
   constructor(func: Function, stackVisualization: HTMLElement, lines_: Line[]) {
     this.currentFunction = func;
     this.stackVisualization = stackVisualization;
-    this.updateStackVisualization();
     this.lines = lines_;
+    this.stack = [];
+    // Initialize stack visualization
+    const stackItems = this.stackVisualization.querySelector("#stack-items");
+    if (stackItems) {
+      stackItems.innerHTML = '<div class="stack-item">(empty stack)</div>';
+    }
   }
 
   private getLineById(id: number): Line | null {
@@ -38,10 +45,23 @@ export class Execution {
   }
 
   private updateStackVisualization() {
-    const stackItems = this.stackVisualization.querySelector("#stack-items")!;
-    stackItems.innerHTML = this.stack
-      .map((value) => `<div class="stack-item">${value}</div>`)
-      .join("");
+    console.log("Updating stack visualization");
+    console.log("Current stack:", this.stack);
+    const stackItems = this.stackVisualization.querySelector("#stack-items");
+    console.log("Stack items element:", stackItems);
+    if (!stackItems) {
+      console.error("Could not find #stack-items element");
+      return;
+    }
+    const html = this.error
+      ? '<div class="stack-item">Error</div>'
+      : this.stack.length === 0
+        ? '<div class="stack-item">(empty stack)</div>'
+        : [...this.stack]
+            .map((value) => `<div class="stack-item">${value}</div>`)
+            .join("");
+    console.log("Generated HTML:", html);
+    stackItems.innerHTML = html;
   }
 
   private highlightCurrentInstruction() {
@@ -72,120 +92,142 @@ export class Execution {
   ) {
     // First determine the instruction name and any arguments
     let name: InstructionName;
-    let immediate: number | undefined;
 
-    if ("label" in instruction) {
-      name = instruction.name;
-      // For now, ignore labels
-    } else if ("immediate" in instruction) {
-      name = instruction.name;
-      // Convert immediate to number if it's a numeric instruction
-      if (typeof instruction.immediate === "number") {
-        immediate = instruction.immediate;
-      } else if (
-        typeof instruction.immediate === "string" &&
-        !isNaN(Number(instruction.immediate))
-      ) {
-        immediate = Number(instruction.immediate);
-      }
-    } else {
-      name = instruction.name;
-    }
+    name = instruction.name;
+
+    console.log(instruction);
 
     // Handle numeric instructions
     if (i32Instructions.includes(name as any)) {
-      if (immediate !== undefined) {
-        this.stack.push(immediate);
-      }
+      this.stack.push(["i32", instruction.argument]);
     } else if (i64Instructions.includes(name as any)) {
-      // For now, treat i64 as i32
-      if (immediate !== undefined) {
-        this.stack.push(immediate);
-      }
-    } else if (
-      f32Instructions.includes(name as any) ||
-      f64Instructions.includes(name as any)
-    ) {
-      // For now, treat floats as integers
-      if (immediate !== undefined) {
-        this.stack.push(immediate);
-      }
+      this.stack.push(["i64", instruction.argument]);
+    } else if (f32Instructions.includes(name as any)) {
+      this.stack.push(["f32", instruction.argument]);
+    } else if (f64Instructions.includes(name as any)) {
+      this.stack.push(["f64", instruction.argument]);
     } else if (noArgInstructions.includes(name as any)) {
       switch (name) {
         case "i32.add":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a + b);
+            console.log("a", a);
+            console.log("b", b);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] + b[1]]);
           }
           break;
         case "i32.sub":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a - b);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] - b[1]]);
           }
           break;
         case "i32.mul":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a * b);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] * b[1]]);
           }
           break;
         case "i32.div_s":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(Math.floor(a / b));
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", Math.floor(a[1] / b[1])]);
           }
           break;
         case "i32.eq":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a === b ? 1 : 0);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] === b[1] ? 1 : 0]);
           }
           break;
         case "i32.ne":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a !== b ? 1 : 0);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] !== b[1] ? 1 : 0]);
           }
           break;
         case "i32.lt_s":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a < b ? 1 : 0);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] < b[1] ? 1 : 0]);
           }
           break;
         case "i32.gt_s":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a > b ? 1 : 0);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] > b[1] ? 1 : 0]);
           }
           break;
         case "i32.le_s":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a <= b ? 1 : 0);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] <= b[1] ? 1 : 0]);
           }
           break;
         case "i32.ge_s":
           if (this.stack.length >= 2) {
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(a >= b ? 1 : 0);
+            if (a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] >= b[1] ? 1 : 0]);
           }
           break;
         case "i32.eqz":
           if (this.stack.length >= 1) {
             const a = this.stack.pop()!;
-            this.stack.push(a === 0 ? 1 : 0);
+            if (a[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(["i32", a[1] === 0 ? 1 : 0]);
           }
           break;
         case "drop":
@@ -198,10 +240,15 @@ export class Execution {
             const c = this.stack.pop()!;
             const b = this.stack.pop()!;
             const a = this.stack.pop()!;
-            this.stack.push(c !== 0 ? a : b);
+            if (c[0] !== "i32" || a[0] !== "i32" || b[0] !== "i32") {
+              this.error = true;
+              return;
+            }
+            this.stack.push(c[1] !== 0 ? a : b);
           }
           break;
         default:
+          console.log("Unhandled instruction:", name);
           // For now, treat all other instructions as nops
           break;
       }
@@ -209,7 +256,10 @@ export class Execution {
   }
 
   step(): boolean {
-    if (this.currentInstructionIndex >= this.currentFunction.body.length) {
+    if (
+      this.currentInstructionIndex >= this.currentFunction.body.length ||
+      this.error
+    ) {
       if (this.oldLine) {
         this.oldLine().div.classList.remove("executing");
       }
