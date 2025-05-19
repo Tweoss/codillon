@@ -27,6 +27,7 @@ import {
   validateMemoryArgument,
   validateUI32,
 } from "./instruction_arg_validation.js";
+import { globalStates } from "./global_variables.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -240,12 +241,12 @@ function init() {
     }
   });
   blockElement.addEventListener("dragover", (e) => {
-    if (blockElement.classList.contains("empty")) {
+    if (blockElement.classList.contains("empty") || globalStates.isRunning) {
       e.preventDefault();
     }
   });
   blockElement.addEventListener("drop", (e) => {
-    if (blockElement.classList.contains("empty")) {
+    if (blockElement.classList.contains("empty") && !globalStates.isRunning) {
       e.preventDefault();
       const draggedEl = (window as any).__draggedLine;
       if (draggedEl && draggedEl !== blockElement) {
@@ -255,6 +256,7 @@ function init() {
           draggedEl.innerHTML = "";
           draggedEl.classList.add("empty");
           setAsText(draggedEl);
+          draggedEl.removeAttribute("contentEditable");
         }
       }
     }
@@ -266,7 +268,7 @@ function init() {
     }
   });
   blockElement.addEventListener("dragenter", (e) => {
-    if (blockElement.classList.contains("empty")) {
+    if (blockElement.classList.contains("empty") && !globalStates.isRunning) {
       blockElement.classList.add("selected");
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = "none";

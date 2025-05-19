@@ -3,6 +3,8 @@ import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
+import { Execution, createExecution } from "./execute.js";
+import { globalStates } from "./global_variables.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -34,6 +36,10 @@ template.innerHTML = `
       line-height: 20px;
       background: white;
     }
+    .executing {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+    }
   </style>
   <div id="editor-container">
     <!-- wrapper div allows us to get around no background in overflow -->
@@ -59,12 +65,39 @@ function createEditor() {
   const blockBank = BlockBank();
   frag.append(blockBank);
   const menuBar = MenuBar();
-  frag.prepend(menuBar);
+  frag.prepend(menuBar.frag);
+  const runBtn = menuBar.runBtn;
+  const stepOverBtn = menuBar.stepOverBtn;
+  const stepIntoBtn = menuBar.stepIntoBtn;
+  const stepOutBtn = menuBar.stepOutBtn;
+  const stopBtn = menuBar.stopBtn;
+  const transitionBtn = menuBar.transitionBtn;
+  const stackVisualization = menuBar.stackVisualization;
 
   /* State variables. */
   const initial_lines = ["(func", ")", "(func", ")"] as string[];
   let lines: Line[] = [];
   let ast: { inner: AST | null } = { inner: null };
+  let currentExecution: Execution | null = null;
+
+  /* State update functions */
+  function updateRunningState(running: boolean) {
+    globalStates.isRunning = running;
+    stackVisualization.classList.toggle("visible", running);
+
+    // Disable/enable editing based on running state
+    document.querySelectorAll(".line .block-container").forEach((container) => {
+      if (running) {
+        container.removeAttribute("contentEditable");
+        container.removeAttribute("draggable");
+        container.classList.remove("executing");
+      } else if (globalStates.mode === "text") {
+        container.setAttribute("contentEditable", "plaintext-only");
+      } else if (globalStates.mode === "block") {
+        container.setAttribute("draggable", "true");
+      }
+    });
+  }
 
   function updateLineNumbers(): void {
     const lines = contentEditor.querySelectorAll(".line").length;
@@ -158,7 +191,7 @@ function createEditor() {
     lines[i]({ content: initial_lines[i], saved_in_ast: true });
   }
 
-  const dbg = <T,>(v: T) => {
+  const dbg = <T>(v: T) => {
     console.log(v);
     return v;
   };
@@ -179,6 +212,52 @@ function createEditor() {
   // Seems like we need delay after page is loaded before focusing.
   requestAnimationFrame(() => {
     lines[0]({ focus: true });
+  });
+
+  // Add function to get current AST
+  function getCurrentAST(): AST | null {
+    return ast.inner;
+  }
+
+  // Add function to get current lines for AST parsing
+  function getCurrentLines(): [string, LineID][] {
+    return lines.map((l) => [l().content, l().line_id]);
+  }
+
+  /* Event listeners */
+
+  runBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!globalStates.isRunning && ast.inner) {
+      console.log("Starting execution with AST:", ast);
+      currentExecution = createExecution(ast.inner, stackVisualization, lines);
+      if (currentExecution) {
+        updateRunningState(true);
+      }
+    }
+  });
+
+  stopBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (globalStates.isRunning) {
+      console.log("Stopping execution");
+      currentExecution = null;
+      updateRunningState(false);
+      document.querySelectorAll(".line").forEach((container) => {
+        container.classList.remove("executing");
+      });
+    }
+  });
+
+  stepOverBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (globalStates.isRunning && currentExecution) {
+      const hasMore = currentExecution.step();
+      if (!hasMore) {
+        currentExecution = null;
+        updateRunningState(false);
+      }
+    }
   });
 
   return frag;
