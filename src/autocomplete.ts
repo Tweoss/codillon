@@ -1,6 +1,7 @@
 import { validateInstructionWithArgs } from "./instruction_arg_validation.js";
 import { instructions } from "./syntax.constants.js";
 export function listCompletions(prefix: string): string[] {
+  // TODO: use AST for completions
   return instructions.filter((instruction) =>
     prefix.startsWith(instruction.slice(0, prefix.length)),
   );

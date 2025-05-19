@@ -113,34 +113,36 @@ export function validateMemoryArgument(text: string, text2: string): boolean {
 export function validateInstructionWithArgs(text: string): boolean {
   let vals = text.split(" ");
   if (vals.length === 1) {
-    return noArgInstructions.includes(vals[0]);
+    return noArgInstructions.includes(vals[0] as any);
   } else if (vals.length === 2) {
-    if (labelIndexInstructions.includes(vals[0])) {
-      return validateLabelIndex(vals[1]);
-    } else if (labelIndexVectorLabelIndexInstructions.includes(vals[0])) {
-      return validateLabelIndexVectorLabelIndex(vals[1]);
-    } else if (funcIndexInstructions.includes(vals[0])) {
-      return validateFuncIndex(vals[1]);
-    } else if (typeIndexInstructions.includes(vals[0])) {
-      return validateTypeIndex(vals[1]);
-    } else if (localIndexInstructions.includes(vals[0])) {
-      return validateLocalIndex(vals[1]);
-    } else if (globalIndexInstructions.includes(vals[0])) {
-      return validateGlobalIndex(vals[1]);
-    } else if (i32Instructions.includes(vals[0])) {
-      return validateI32(vals[1]);
-    } else if (i64Instructions.includes(vals[0])) {
-      return validateI64(vals[1]);
-    } else if (f32Instructions.includes(vals[0])) {
-      return validateF32(vals[1]);
-    } else if (f64Instructions.includes(vals[0])) {
-      return validateF64(vals[1]);
+    if (labelIndexInstructions.includes(vals[0] as any)) {
+      return validateLabelIndex(vals[1] as any);
+    } else if (
+      labelIndexVectorLabelIndexInstructions.includes(vals[0] as any)
+    ) {
+      return validateLabelIndexVectorLabelIndex(vals[1] as any);
+    } else if (funcIndexInstructions.includes(vals[0] as any)) {
+      return validateFuncIndex(vals[1] as any);
+    } else if (typeIndexInstructions.includes(vals[0] as any)) {
+      return validateTypeIndex(vals[1] as any);
+    } else if (localIndexInstructions.includes(vals[0] as any)) {
+      return validateLocalIndex(vals[1] as any);
+    } else if (globalIndexInstructions.includes(vals[0] as any)) {
+      return validateGlobalIndex(vals[1] as any);
+    } else if (i32Instructions.includes(vals[0] as any)) {
+      return validateI32(vals[1] as any);
+    } else if (i64Instructions.includes(vals[0] as any)) {
+      return validateI64(vals[1] as any);
+    } else if (f32Instructions.includes(vals[0] as any)) {
+      return validateF32(vals[1] as any);
+    } else if (f64Instructions.includes(vals[0] as any)) {
+      return validateF64(vals[1] as any);
     } else {
       return false;
     }
   } else if (vals.length === 3) {
     return (
-      memoryArgumentInstructions.includes(vals[0]) &&
+      memoryArgumentInstructions.includes(vals[0] as any) &&
       validateMemoryArgument(vals[1], vals[2])
     );
   } else {

@@ -10,7 +10,7 @@ list:
 build:
     tsc
 watch:
-    watchexec -d 0 -v -w src 'just build'
+    watchexec -d 1ms -v -w src 'just build'
 serve:
     penguin serve . -p 8080 --no-auto-watch -w index.html -w build
 test:

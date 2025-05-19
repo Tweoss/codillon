@@ -27,6 +27,7 @@ import {
   validateMemoryArgument,
   validateUI32,
 } from "./instruction_arg_validation.js";
+import { globalStates } from "./global_variables.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -100,7 +101,7 @@ export function applySyntaxHighlighting(element: HTMLElement) {
       if (!/^\s+$/.test(word)) {
         if (index === 0) {
           // First word or word after whitespace is the instruction
-          if (instructions.includes(word)) {
+          if (instructions.includes(word as any)) {
             span.className = "instruction";
           }
         } else if (index > 0 && /^\s+$/.test(words[index - 1])) {
@@ -108,49 +109,49 @@ export function applySyntaxHighlighting(element: HTMLElement) {
           const instruction = words[0];
 
           // Apply appropriate validation and styling based on instruction type
-          if (labelIndexInstructions.includes(instruction)) {
+          if (labelIndexInstructions.includes(instruction as any)) {
             if (validateLabelIndex(word)) {
               span.className = "number";
             }
           } else if (
-            labelIndexVectorLabelIndexInstructions.includes(instruction)
+            labelIndexVectorLabelIndexInstructions.includes(instruction as any)
           ) {
             if (validateLabelIndexVectorLabelIndex(word)) {
               span.className = "number";
             }
-          } else if (funcIndexInstructions.includes(instruction)) {
+          } else if (funcIndexInstructions.includes(instruction as any)) {
             if (validateFuncIndex(word)) {
               span.className = "number";
             }
-          } else if (typeIndexInstructions.includes(instruction)) {
+          } else if (typeIndexInstructions.includes(instruction as any)) {
             if (validateTypeIndex(word)) {
               span.className = "number";
             }
-          } else if (localIndexInstructions.includes(instruction)) {
+          } else if (localIndexInstructions.includes(instruction as any)) {
             if (validateLocalIndex(word)) {
               span.className = "number";
             }
-          } else if (globalIndexInstructions.includes(instruction)) {
+          } else if (globalIndexInstructions.includes(instruction as any)) {
             if (validateGlobalIndex(word)) {
               span.className = "number";
             }
-          } else if (i32Instructions.includes(instruction)) {
+          } else if (i32Instructions.includes(instruction as any)) {
             if (validateI32(word)) {
               span.className = "number";
             }
-          } else if (i64Instructions.includes(instruction)) {
+          } else if (i64Instructions.includes(instruction as any)) {
             if (validateI64(word)) {
               span.className = "number";
             }
-          } else if (f32Instructions.includes(instruction)) {
+          } else if (f32Instructions.includes(instruction as any)) {
             if (validateF32(word)) {
               span.className = "number";
             }
-          } else if (f64Instructions.includes(instruction)) {
+          } else if (f64Instructions.includes(instruction as any)) {
             if (validateF64(word)) {
               span.className = "number";
             }
-          } else if (memoryArgumentInstructions.includes(instruction)) {
+          } else if (memoryArgumentInstructions.includes(instruction as any)) {
             // right now this is applying the same styling to both arguments
             if (validateUI32(word)) {
               span.className = "number";
@@ -240,12 +241,12 @@ function init() {
     }
   });
   blockElement.addEventListener("dragover", (e) => {
-    if (blockElement.classList.contains("empty")) {
+    if (blockElement.classList.contains("empty") || globalStates.isRunning) {
       e.preventDefault();
     }
   });
   blockElement.addEventListener("drop", (e) => {
-    if (blockElement.classList.contains("empty")) {
+    if (blockElement.classList.contains("empty") && !globalStates.isRunning) {
       e.preventDefault();
       const draggedEl = (window as any).__draggedLine;
       if (draggedEl && draggedEl !== blockElement) {
@@ -255,6 +256,7 @@ function init() {
           draggedEl.innerHTML = "";
           draggedEl.classList.add("empty");
           setAsText(draggedEl);
+          draggedEl.removeAttribute("contentEditable");
         }
       }
     }
@@ -266,7 +268,7 @@ function init() {
     }
   });
   blockElement.addEventListener("dragenter", (e) => {
-    if (blockElement.classList.contains("empty")) {
+    if (blockElement.classList.contains("empty") && !globalStates.isRunning) {
       blockElement.classList.add("selected");
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = "none";
