@@ -1,11 +1,7 @@
-import { AST, LineID, Location } from "./ast.js";
-import createAutocomplete, {
-  Autocomplete,
-  listCompletions,
-  checkValidSyntax,
-} from "./autocomplete.js";
+import { AST, Location } from "./ast.js";
+import createAutocomplete, { Autocomplete } from "./autocomplete.js";
 import Block, { applySyntaxHighlighting, setCursor } from "./block.js";
-import { globalStates } from "./global_variables.js";
+import { LineID, globalStates } from "./global_variables.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -61,12 +57,12 @@ function init({
   let autocomplete: Autocomplete | null = null;
 
   /* State variables */
-  let completions = [] as string[];
+  let completions = [] as readonly string[];
   let preValidState: string | null = null;
   let saved_in_ast = false;
 
   /* DOM update functions */
-  function addAutocomplete(completions: string[]): void {
+  function addAutocomplete(completions: readonly string[]): void {
     if (!completions || globalStates.isRunning) return;
     removeAutocomplete();
     autocomplete = createAutocomplete({
@@ -115,7 +111,7 @@ function init({
       deleteLine(update);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      completions = listCompletions(block.getContent());
+      completions = ast.inner.get_autocomplete(line_id, block.getContent());
       if (block.getContent() && completions.length > 0) {
         block.setContent(completions[0]);
         lineElement.classList.remove("error");
@@ -131,7 +127,7 @@ function init({
     value
       ? block.div.classList.remove("empty")
       : block.div.classList.add("empty");
-    completions = listCompletions(value);
+    completions = ast.inner.get_autocomplete(line_id, value);
     if (completions.length > 0) {
       if (!autocomplete) {
         addAutocomplete(completions);
@@ -212,6 +208,16 @@ function init({
     const line = update;
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
+    console.log(saved_in_ast && !ast.inner.update_line([value, line_id], true));
+    console.log(
+      !saved_in_ast &&
+        !ast.inner.place_instruction(
+          prev_line ? { after: prev_line().line_id } : "start",
+          [value, line_id],
+          true,
+        ) &&
+        value !== "(func",
+    );
     if (
       (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
       (!saved_in_ast &&
@@ -219,7 +225,8 @@ function init({
           prev_line ? { after: prev_line().line_id } : "start",
           [value, line_id],
           true,
-        ))
+        ) &&
+        value !== "(func")
     ) {
       block.setContent(preValidState ?? "");
     }

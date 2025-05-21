@@ -13,6 +13,7 @@ import {
   f64Instructions,
   InstructionName,
 } from "./syntax.constants.js";
+import { LineID, globalStates } from "./global_variables.js";
 
 let counter = 0;
 export function new_line_id(): LineID {
@@ -78,7 +79,7 @@ export class AST {
   }
   // Returns whether or not the line is valid at that location in the AST.
   place_instruction(
-    location: { after: LineID } | "start",
+    location: Location,
     line: [string, LineID],
     save: boolean,
   ): boolean {
@@ -114,7 +115,26 @@ export class AST {
   //   }
   //   return null;
   // }
-  get_autocomplete(location: Location, match: string) {}
+  get_autocomplete(location: LineID, prefix: string) {
+    const index = globalStates.lineIdToIndex.get(location) as number;
+    for (const f of this.functions) {
+      const startLine = globalStates.lineIdToIndex.get(f.span[0]) as number;
+      const endLine = globalStates.lineIdToIndex.get(f.span[1]) as number;
+      if (index > startLine && index < endLine) {
+        return prefix
+          ? instructions.filter((instruction) =>
+              prefix.startsWith(instruction.slice(0, prefix.length)),
+            )
+          : instructions;
+      }
+    }
+    const initializingLines: readonly string[] = ["(func"];
+    return prefix
+      ? initializingLines.filter((instruction) =>
+          prefix.startsWith(instruction.slice(0, prefix.length)),
+        )
+      : initializingLines;
+  }
 }
 export class Function {
   argument_types: { type: Type; label?: string }[];
@@ -175,7 +195,6 @@ export class Function {
     ]);
   }
 }
-export type LineID = number;
 export type Type = "i32" | "i64" | "f32" | "f64";
 export type Instruction = { name: InstructionName; line: LineID };
 export type InstructionWithLabel = Instruction & { label: string | number };
