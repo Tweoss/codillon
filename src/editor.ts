@@ -180,6 +180,7 @@ function createEditor() {
     lines = lines.slice(0, index).concat([line]).concat(lines.slice(index));
     updateLineNumbers();
     mapLineIdToIndex();
+    line().setIndentation();
     return line;
   }
 

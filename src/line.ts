@@ -11,7 +11,11 @@ template.innerHTML = `<style>
     box-sizing: border-box;
     -webkit-tap-highlight-color: red;
     height: 24px;
-    border-bottom: 1px dashed var(--border-color);
+    background-image: linear-gradient(to right, var(--border-color) 33%, white 0%);
+    background-position: bottom;
+    background-size: 12px 1px;
+    background-repeat: repeat-x;
+    background-clip: content-box;
   }
   .error {
     text-decoration: underline;
@@ -60,6 +64,7 @@ function init({
   let completions = [] as readonly string[];
   let preValidState: string | null = null;
   let saved_in_ast = false;
+  let inFunction: boolean = false;
 
   /* DOM update functions */
   function addAutocomplete(completions: readonly string[]): void {
@@ -85,6 +90,12 @@ function init({
   }
 
   /* State update functions */
+  function setIndentation() {
+    inFunction = Boolean(ast.inner?.get_function(line_id));
+    inFunction
+      ? lineElement.classList.add("indent")
+      : lineElement.classList.remove("indent");
+  }
   /* State logic */
   function completionError() {
     lineElement.animate(
@@ -166,12 +177,12 @@ function init({
       addNewLine(true, update);
       return;
     }
-    if (value == "(func") {
+    if (!inFunction && value == "(func") {
+      preValidState = value;
       if (saved_in_ast) {
         addNewLine(true, update);
         return;
       }
-      // TODO: handle if there is already a function block.
       if (addFunction(prev_line, update)) {
         saved_in_ast = true;
       }
@@ -208,16 +219,6 @@ function init({
     const line = update;
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
-    console.log(saved_in_ast && !ast.inner.update_line([value, line_id], true));
-    console.log(
-      !saved_in_ast &&
-        !ast.inner.place_instruction(
-          prev_line ? { after: prev_line().line_id } : "start",
-          [value, line_id],
-          true,
-        ) &&
-        value !== "(func",
-    );
     if (
       (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
       (!saved_in_ast &&
@@ -225,8 +226,7 @@ function init({
           prev_line ? { after: prev_line().line_id } : "start",
           [value, line_id],
           true,
-        ) &&
-        value !== "(func")
+        ))
     ) {
       block.setContent(preValidState ?? "");
     }
@@ -267,6 +267,7 @@ function init({
       saved_in_ast,
       line_id,
       content: block.getContent(),
+      setIndentation,
     };
   }
 

@@ -361,3 +361,4 @@ export const numericInstructions = {
 };
 export const dataTypes = ["i32", "i64", "f32", "f64"] as const;
 export type DataType = (typeof dataTypes)[number];
+export const MarginWidth = 20;

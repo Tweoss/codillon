@@ -115,25 +115,23 @@ export class AST {
   //   }
   //   return null;
   // }
-  get_autocomplete(location: LineID, prefix: string) {
+  get_function(location: LineID): Function | null {
     const index = globalStates.lineIdToIndex.get(location) as number;
     for (const f of this.functions) {
       const startLine = globalStates.lineIdToIndex.get(f.span[0]) as number;
       const endLine = globalStates.lineIdToIndex.get(f.span[1]) as number;
       if (index > startLine && index < endLine) {
-        return prefix
-          ? instructions.filter((instruction) =>
-              prefix.startsWith(instruction.slice(0, prefix.length)),
-            )
-          : instructions;
+        return f;
       }
     }
-    const initializingLines: readonly string[] = ["(func"];
-    return prefix
-      ? initializingLines.filter((instruction) =>
-          prefix.startsWith(instruction.slice(0, prefix.length)),
-        )
-      : initializingLines;
+    return null;
+  }
+  get_autocomplete(location: LineID, prefix: string) {
+    const instructionList: readonly string[] =
+      !prefix || this.get_function(location) ? instructions : ["(func"];
+    return instructionList.filter((instruction) =>
+      prefix.startsWith(instruction.slice(0, prefix.length)),
+    );
   }
 }
 export class Function {
