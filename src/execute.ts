@@ -330,18 +330,20 @@ export class Execution {
       },
     };
     Object.entries(conversions).forEach(([op, { from, to, handler }]) => {
-      const instruction = `${to}.${op}` as InstructionName;
-      this.instructionHandlers.set(instruction, (exec) => {
-        if (exec.stack.length < 1) {
-          exec.error = true;
-          return;
-        }
-        const [ty, val] = exec.stack.pop()!;
-        if (ty !== from) {
-          exec.error = true;
-          return;
-        }
-        to.forEach((t) => exec.stack.push([t, handler(val)]));
+      to.forEach((t) => {
+        const instruction = `${t}.${op}` as InstructionName;
+        this.instructionHandlers.set(instruction, (exec) => {
+          if (exec.stack.length < 1) {
+            exec.error = true;
+            return;
+          }
+          const [ty, val] = exec.stack.pop()!;
+          if (ty !== from) {
+            exec.error = true;
+            return;
+          }
+          exec.stack.push([t, handler(val)]);
+        });
       });
     });
   }
@@ -364,7 +366,10 @@ export class Execution {
       : this.stack.length === 0
         ? '<div class="stack-item">(empty stack)</div>'
         : [...this.stack]
-            .map((value) => `<div class="stack-item">${value}</div>`)
+            .map(
+              (value) =>
+                `<div class="stack-item">${value[0]}, ${value[1]}</div>`,
+            )
             .join("");
     console.log("Generated HTML:", html);
     stackItems.innerHTML = html;

@@ -1,6 +1,8 @@
 import puppeteer, { Page } from "puppeteer-core";
 import { assert_b, assert_eq, passed, sleep, wait_for_stdin } from "./lib.ts";
 
+const sleepDuration = 10;
+
 async function main() {
   const browserExecutablePath = process.argv.at(2);
   const usageString = `Usage: ${process.argv[0]} ${process.argv[1]} [browser-executable-path]`;
@@ -35,6 +37,26 @@ async function main() {
 }
 main();
 
+async function next_line(page: Page) {
+  await page.keyboard.press("Enter");
+  await sleep(sleepDuration);
+}
+
+async function mult_step(page: Page, stepCount: number) {
+  await (await page.waitForSelector(`#run-btn`))?.click();
+  const stepBtn = await page.waitForSelector(`#step-over-btn`);
+  for (let i = 0; i < stepCount; i++) {
+    await stepBtn?.click();
+  }
+  await sleep(sleepDuration);
+}
+
+async function get_stack_items(page: Page) {
+  return await page.$$eval(`#stack-items .stack-item`, (els) =>
+    els.map((el) => el.textContent),
+  );
+}
+
 async function type_line(page: Page, index: number, text: string) {
   await (await page.waitForSelector(
     `#content-editor div:nth-of-type(${index})`,
@@ -44,12 +66,11 @@ async function type_line(page: Page, index: number, text: string) {
 // We should be able to enter two lines.
 async function test_enter(page: Page) {
   // This refocuses the page somehow.
-  await page.keyboard.press("Enter");
-  await type_line(page, 1, "\n");
+  await (await page.waitForSelector(`.line:first-of-type`))?.click();
   // Our code takes a bit of time to run after we insert a new line.
-  await sleep(10);
-  await type_line(page, 2, "i32.const 1\n");
-  await sleep(10);
+  await next_line(page);
+  await type_line(page, 2, "i32.const 1");
+  await next_line(page);
   await type_line(page, 3, "i32.const 2");
   const elements = await Promise.all(
     await page
@@ -72,9 +93,8 @@ async function test_enter(page: Page) {
 
 // We should be able not be able to enter an invalid line.
 async function test_invalid_enter(page: Page) {
-  await page.keyboard.press("Enter");
-  await type_line(page, 1, "\n");
-  await sleep(10);
+  await (await page.waitForSelector(`.line:first-of-type`))?.click();
+  await next_line(page);
   await type_line(page, 2, "invalid text\n");
   const elements = await Promise.all(
     await page
@@ -93,87 +113,95 @@ async function test_invalid_enter(page: Page) {
 }
 
 async function test_integer_ops(page: Page) {
-  await page.keyboard.press("Enter");
-  await type_line(page, 1, "\n");
-  await sleep(10);
-  await type_line(
-    page,
-    2,
-    "i32.const 4\n" +
-      "i32.const 5\n" +
-      "i32.add\n" +
-      "i32.const 2\n" +
-      "i32.mul",
-  );
-  await sleep(50);
-  // assume stack‐visualization shows final stack values in order
-  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
-    els.map((el) => el.textContent),
-  );
-  assert_eq(stack, ['["i32",18]'], "integer 4+5 then *2 should be 18");
-  passed("integer arithmetic");
+  await (await page.waitForSelector(`.line:first-of-type`))?.click();
+  await next_line(page);
+  await type_line(page, 2, "i32.const 4");
+  await next_line(page);
+  await type_line(page, 3, "i32.const 5");
+  await next_line(page);
+  await type_line(page, 4, "i32.add");
+  await next_line(page);
+  await type_line(page, 5, "i32.const 2");
+  await next_line(page);
+  await type_line(page, 6, "i32.mul");
+  await mult_step(page, 5);
+  const stackValues = await get_stack_items(page);
+  if (
+    assert_eq(stackValues, ["i32, 18"], "integer 4 + 5 then * 2 should be 18")
+  )
+    passed("integer arithmetic");
+  else await wait_for_stdin("debugging");
 }
 
 async function test_float_ops(page: Page) {
-  await page.keyboard.press("Enter");
-  await type_line(page, 1, "\n");
-  await sleep(10);
-  await type_line(
-    page,
-    2,
-    "f32.const 1.5\n" + "f32.const 2.25\n" + "f32.add\n" + "f32.sqrt",
-  );
-  await sleep(50);
-  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
-    els.map((el) => parseFloat(el.textContent!)),
-  );
-  const result = Math.round(stack[0] * 1e4) / 1e4;
-  assert_eq(
-    [result],
-    [Math.round(Math.sqrt(3.75) * 1e4) / 1e4],
-    "float add + sqrt",
-  );
-  passed("float operations");
+  await (await page.waitForSelector(`.line:first-of-type`))?.click();
+  await next_line(page);
+  await type_line(page, 2, "f32.const 1.5");
+  await next_line(page);
+  await type_line(page, 3, "f32.const 2.25");
+  await next_line(page);
+  await type_line(page, 4, "f32.add");
+  await next_line(page);
+  await type_line(page, 5, "f32.sqrt");
+  await mult_step(page, 4);
+  const stackValues = await get_stack_items(page);
+  const expected = Math.sqrt(1.5 + 2.25);
+  if (
+    assert_eq(
+      stackValues,
+      [`f32, ${expected}`],
+      "float add + sqrt ≈ " + expected,
+    )
+  ) {
+    passed("float operations");
+  } else {
+    await wait_for_stdin("debugging");
+  }
 }
 
 async function test_mixed_ops(page: Page) {
-  await page.keyboard.press("Enter");
-  await type_line(page, 1, "\n");
-  await sleep(10);
-  await type_line(
-    page,
-    2,
-    "i32.const 7\n" + "f32.convert_i32_s\n" + "f32.const 3.5\n" + "f32.mul",
-  );
-  await sleep(50);
-  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
-    els.map((el) => parseFloat(el.textContent!)),
-  );
-  assert_eq(
-    [stack[0]],
-    [24.5],
-    "mixed int→float conversion and multiplication",
-  );
-  passed("mixed int/float operations");
+  await (await page.waitForSelector(`.line:first-of-type`))?.click();
+  await next_line(page);
+  await type_line(page, 2, "i32.const 7");
+  await next_line(page);
+  await type_line(page, 3, "f32.convert_i32_s");
+  await next_line(page);
+  await type_line(page, 4, "f32.const 3.5");
+  await next_line(page);
+  await type_line(page, 5, "f32.mul");
+  await mult_step(page, 4);
+  const stackValues = await get_stack_items(page);
+  const expected = 24.5;
+  if (
+    assert_eq(
+      stackValues,
+      [`f32, ${expected}`],
+      "mixed int to float conversion and multiplication",
+    )
+  ) {
+    passed("mixed int/float operations");
+  } else {
+    await wait_for_stdin("debugging");
+  }
 }
 
 async function test_bitwise_ops(page: Page) {
-  await page.keyboard.press("Enter");
-  await type_line(page, 1, "\n");
-  await sleep(10);
-  await type_line(
-    page,
-    2,
-    "i32.const 10\n" +
-      "i32.const 12\n" +
-      "i32.and\n" +
-      "i32.const 1\n" +
-      "i32.shl",
-  );
-  await sleep(50);
-  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
-    els.map((el) => el.textContent),
-  );
-  assert_eq(stack, ['["i32",16]'], "bitwise AND then shift left yields 16");
-  passed("bitwise operations");
+  await (await page.waitForSelector(`.line:first-of-type`))?.click();
+  await next_line(page);
+  await type_line(page, 2, "i32.const 10");
+  await next_line(page);
+  await type_line(page, 3, "i32.const 12");
+  await next_line(page);
+  await type_line(page, 4, "i32.and");
+  await next_line(page);
+  await type_line(page, 5, "i32.const 1");
+  await next_line(page);
+  await type_line(page, 6, "i32.shl");
+  await mult_step(page, 5);
+  const stackValues = await get_stack_items(page);
+  if (assert_eq(stackValues, ["i32, 16"], "bitwise AND then shl → 16")) {
+    passed("bitwise operations");
+  } else {
+    await wait_for_stdin("debugging");
+  }
 }
