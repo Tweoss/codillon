@@ -26,6 +26,10 @@ async function main() {
   await test_enter(page);
 
   await test_invalid_enter(await new_page());
+  await test_integer_ops(await new_page());
+  await test_float_ops(await new_page());
+  await test_mixed_ops(await new_page());
+  await test_bitwise_ops(await new_page());
   await browser.close();
   process.exit(0);
 }
@@ -86,4 +90,90 @@ async function test_invalid_enter(page: Page) {
   )
     passed("entering invalid line");
   else await wait_for_stdin("debugging");
+}
+
+async function test_integer_ops(page: Page) {
+  await page.keyboard.press("Enter");
+  await type_line(page, 1, "\n");
+  await sleep(10);
+  await type_line(
+    page,
+    2,
+    "i32.const 4\n" +
+      "i32.const 5\n" +
+      "i32.add\n" +
+      "i32.const 2\n" +
+      "i32.mul",
+  );
+  await sleep(50);
+  // assume stack‐visualization shows final stack values in order
+  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
+    els.map((el) => el.textContent),
+  );
+  assert_eq(stack, ['["i32",18]'], "integer 4+5 then *2 should be 18");
+  passed("integer arithmetic");
+}
+
+async function test_float_ops(page: Page) {
+  await page.keyboard.press("Enter");
+  await type_line(page, 1, "\n");
+  await sleep(10);
+  await type_line(
+    page,
+    2,
+    "f32.const 1.5\n" + "f32.const 2.25\n" + "f32.add\n" + "f32.sqrt",
+  );
+  await sleep(50);
+  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
+    els.map((el) => parseFloat(el.textContent!)),
+  );
+  const result = Math.round(stack[0] * 1e4) / 1e4;
+  assert_eq(
+    [result],
+    [Math.round(Math.sqrt(3.75) * 1e4) / 1e4],
+    "float add + sqrt",
+  );
+  passed("float operations");
+}
+
+async function test_mixed_ops(page: Page) {
+  await page.keyboard.press("Enter");
+  await type_line(page, 1, "\n");
+  await sleep(10);
+  await type_line(
+    page,
+    2,
+    "i32.const 7\n" + "f32.convert_i32_s\n" + "f32.const 3.5\n" + "f32.mul",
+  );
+  await sleep(50);
+  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
+    els.map((el) => parseFloat(el.textContent!)),
+  );
+  assert_eq(
+    [stack[0]],
+    [24.5],
+    "mixed int→float conversion and multiplication",
+  );
+  passed("mixed int/float operations");
+}
+
+async function test_bitwise_ops(page: Page) {
+  await page.keyboard.press("Enter");
+  await type_line(page, 1, "\n");
+  await sleep(10);
+  await type_line(
+    page,
+    2,
+    "i32.const 10\n" +
+      "i32.const 12\n" +
+      "i32.and\n" +
+      "i32.const 1\n" +
+      "i32.shl",
+  );
+  await sleep(50);
+  const stack = await page.$$eval("#stack-items .stack-item", (els) =>
+    els.map((el) => el.textContent),
+  );
+  assert_eq(stack, ['["i32",16]'], "bitwise AND then shift left yields 16");
+  passed("bitwise operations");
 }
