@@ -360,5 +360,7 @@ export const numericInstructions = {
   ],
 };
 export const dataTypes = ["i32", "i64", "f32", "f64"] as const;
+export const controlStartTypes = ["if", "block", "loop"] as const;
 export type DataType = (typeof dataTypes)[number];
+export type ControlStartTypes = (typeof controlStartTypes)[number];
 export const MarginWidth = 20;
