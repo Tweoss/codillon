@@ -59,7 +59,7 @@ async function get_stack_items(page: Page) {
 
 async function type_line(page: Page, index: number, text: string) {
   await (await page.waitForSelector(
-    `#content-editor div:nth-of-type(${index})`,
+    `#content-editor .line:nth-of-type(${index})`,
   ))!.type(text);
 }
 
@@ -68,6 +68,7 @@ async function test_enter(page: Page) {
   // This refocuses the page somehow.
   await (await page.waitForSelector(`.line:first-of-type`))?.click();
   // Our code takes a bit of time to run after we insert a new line.
+  await sleep(sleepDuration);
   await next_line(page);
   await type_line(page, 2, "i32.const 1");
   await next_line(page);
