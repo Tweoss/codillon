@@ -488,7 +488,7 @@ function createEditor() {
     lines[i]({ content: initial_lines[i], saved_in_ast: true });
   }
 
-  const dbg = <T>(v: T) => {
+  const dbg = <T,>(v: T) => {
     console.log(v);
     return v;
   };
