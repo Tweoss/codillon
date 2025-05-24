@@ -12,6 +12,9 @@ import {
   f32Instructions,
   f64Instructions,
   InstructionName,
+  DataType,
+  controlStartTypes,
+  ControlStartTypes,
 } from "./syntax.constants.js";
 import { LineID, globalStates } from "./global_variables.js";
 
@@ -53,8 +56,34 @@ export class AST {
         const instruction = parseInstructionWithArgs([content, id]);
         if (instruction.result.type == "error") return false;
         if (save) f.body[i] = instruction.result.value;
+        if (
+          (controlStartTypes as Readonly<Array<string>>).includes(prev.name)
+        ) {
+          prev.name = content.split(" ")[0] as ControlStartTypes;
+        }
         return true;
       }
+    }
+    return false;
+  }
+  place_control_flow(
+    cur_function: Function | null | undefined,
+    startInstruction: ControlFlowInstruction,
+    endInstruction: Instruction,
+  ): boolean {
+    if (cur_function) {
+      cur_function.body.push(startInstruction, endInstruction);
+      const name = startInstruction.name.split(" ");
+      if (name.length > 1) {
+        const labelResult = parseLabel(name[1], startInstruction.line);
+        if (labelResult.result.type === "ok") {
+          ParseResult.ok({
+            ...startInstruction,
+            label: labelResult.result.value,
+          });
+        }
+      }
+      return true;
     }
     return false;
   }
@@ -85,6 +114,8 @@ export class AST {
   ): boolean {
     if (location == "start") return false;
     // TODO: make these lazily evaluated? maybe
+    if ((controlStartTypes as Readonly<Array<string>>).includes(line[0]))
+      return true;
     const instruction = parseInstructionWithArgs(line);
 
     // TODO: don't linear search over whole document :D
@@ -135,17 +166,27 @@ export class AST {
   }
 }
 export class Function {
-  argument_types: { type: Type; label?: string }[];
-  return_type: Type | null;
+  argument_types: { type: DataType; label?: string }[];
+  return_type: DataType | null;
   locals: string[];
-  body: (Instruction | InstructionWithLabel | InstructionWithImmediate)[];
+  body: (
+    | Instruction
+    | InstructionWithLabel
+    | InstructionWithImmediate
+    | ControlFlowInstruction
+  )[];
   span: [LineID, LineID];
 
   constructor(
-    argument_types: { type: Type; label?: string | undefined }[],
-    return_type: Type | null,
+    argument_types: { type: DataType; label?: string | undefined }[],
+    return_type: DataType | null,
     locals: string[],
-    body: (Instruction | InstructionWithImmediate | InstructionWithLabel)[],
+    body: (
+      | Instruction
+      | InstructionWithImmediate
+      | InstructionWithLabel
+      | ControlFlowInstruction
+    )[],
     span: [number, number],
   ) {
     this.argument_types = argument_types;
@@ -193,10 +234,16 @@ export class Function {
     ]);
   }
 }
-export type Type = "i32" | "i64" | "f32" | "f64";
+
 export type Instruction = { name: InstructionName; line: LineID };
 export type InstructionWithLabel = Instruction & { label: string | number };
 export type InstructionWithImmediate = Instruction & { argument: number };
+export type ControlFlowInstruction = Instruction & {
+  metadata: {
+    endPos?: LineID;
+    elsePos?: LineID;
+  };
+};
 type ResultType<T> =
   | { type: "error"; error: string; line: LineID }
   | { type: "ok"; value: T };
@@ -365,7 +412,10 @@ function parseLabel(text: string, line: LineID): ParseResult<number | string> {
 
 // TODO: handle vector label index
 function parseInstructionWithArgs([text, line]: [string, LineID]): ParseResult<
-  Instruction | InstructionWithImmediate | InstructionWithLabel
+  | Instruction
+  | InstructionWithImmediate
+  | InstructionWithLabel
+  | ControlFlowInstruction
 > {
   let vals = text.split(" ");
   const name = vals.at(0);
@@ -389,8 +439,7 @@ function parseInstructionWithArgs([text, line]: [string, LineID]): ParseResult<
             name,
           }) satisfies Instruction,
       );
-  }
-  if (vals.length === 2) {
+  } else if (vals.length === 2) {
     // TODO: better error reporting when const fails to parse
     const matches = (
       [

@@ -1,10 +1,17 @@
-import { AST, new_line_id, Location } from "./ast.js";
+import {
+  AST,
+  new_line_id,
+  Location,
+  ControlFlowInstruction,
+  Instruction,
+} from "./ast.js";
 import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
 import { Execution, createExecution } from "./execute.js";
 import { LineID, globalStates } from "./global_variables.js";
+import { ControlStartTypes, InstructionName } from "./syntax.constants.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -154,33 +161,65 @@ function createEditor() {
     return true;
   }
 
+  function addControlFlow(ref: Line | null, startLine: Line): boolean {
+    const cur_function = ast.inner?.get_function(startLine().line_id);
+    const start_instruction: ControlFlowInstruction = {
+      name: startLine().content as ControlStartTypes,
+      line: startLine().line_id,
+      metadata: {
+        endPos: startLine().line_id + 2,
+      },
+    };
+    const end_instruction: Instruction = {
+      name: "end" as InstructionName,
+      line: startLine().line_id + 2,
+    };
+    if (
+      !ast.inner!.place_control_flow(
+        cur_function,
+        start_instruction,
+        end_instruction,
+      )
+    )
+      return false;
+    const space_line = addNewLine(false, startLine);
+    const paren_line = addNewLine(false, space_line);
+    paren_line({ content: "end", saved_in_ast: true });
+    space_line({ focus: true });
+    space_line().setIndentation(startLine().indentationLevel + 1);
+    return true;
+  }
+
   function addNewLine(focus: boolean, referenceLine?: Line) {
     const line = createLine({
       wrapper: ast as { inner: AST },
       addFunction,
       addNewLine,
+      addControlFlow,
       line_id: new_line_id(),
       deleteLine: handleBackspaceOnEmptyLine,
       getPrevLineInAST,
     });
     const lineDOM = line({ content: "" }).frag;
-    if (referenceLine) {
-      contentEditor.insertBefore(lineDOM, referenceLine().div.nextSibling);
-    } else {
-      contentEditor.prepend(lineDOM);
-    }
-    // Focus after appending to DOM (needs a bit of time to update).
-    if (focus)
-      requestAnimationFrame(() => {
-        line({ focus: true });
-      });
     // Split from start up to and including reference line, then after reference line.
     // Or, if no reference, just append to end.
     const index = referenceLine ? getCurrentLineIndex(referenceLine) + 1 : 0;
     lines = lines.slice(0, index).concat([line]).concat(lines.slice(index));
     updateLineNumbers();
     mapLineIdToIndex();
-    line().setIndentation();
+    if (referenceLine) {
+      contentEditor.insertBefore(lineDOM, referenceLine().div.nextSibling);
+      line().setIndentation(referenceLine().indentationLevel);
+    } else {
+      contentEditor.prepend(lineDOM);
+      line().setIndentation();
+    }
+    // Focus after appending to DOM (needs a bit of time to update).
+    if (focus)
+      requestAnimationFrame(() => {
+        line({ focus: true });
+      });
+    console.log(ast.inner);
     return line;
   }
 
