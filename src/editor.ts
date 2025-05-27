@@ -1,10 +1,10 @@
-import { AST, LineID, new_line_id, Location } from "./ast.js";
+import { AST, new_line_id, Location } from "./ast.js";
 import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
 import { Execution, createExecution } from "./execute.js";
-import { globalStates } from "./global_variables.js";
+import { LineID, globalStates } from "./global_variables.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -107,9 +107,8 @@ function createEditor() {
     ).join("<br>");
   }
 
-  // TODO: make faster. could lookup by lineid
   function getCurrentLineIndex(reference: Line) {
-    return lines.findIndex((l) => l == reference);
+    return globalStates.lineIdToIndex.get(reference().line_id) as number;
   }
 
   function handleBackspaceOnEmptyLine(line: Line) {
@@ -126,7 +125,7 @@ function createEditor() {
     line().div.remove();
     lines.splice(index, 1);
     lines[prev_index]({ focus: true });
-
+    mapLineIdToIndex();
     updateLineNumbers();
   }
 
@@ -151,6 +150,7 @@ function createEditor() {
       [startLine().line_id, paren_line().line_id],
       true,
     );
+    mapLineIdToIndex();
     return true;
   }
 
@@ -179,6 +179,8 @@ function createEditor() {
     const index = referenceLine ? getCurrentLineIndex(referenceLine) + 1 : 0;
     lines = lines.slice(0, index).concat([line]).concat(lines.slice(index));
     updateLineNumbers();
+    mapLineIdToIndex();
+    line().setIndentation();
     return line;
   }
 
@@ -203,7 +205,6 @@ function createEditor() {
     ),
   );
   // TODO: handle error for ast
-  // TODO: map from line id to line number
   if (ast_r.result.type == "error")
     throw new Error(ast_r.result.error + " at " + ast_r.result.line);
   ast.inner = ast_r.result.value;
@@ -224,6 +225,11 @@ function createEditor() {
     return lines.map((l) => [l().content, l().line_id]);
   }
 
+  function mapLineIdToIndex() {
+    lines.forEach((line, idx) =>
+      globalStates.lineIdToIndex.set(line().line_id, idx),
+    );
+  }
   /* Event listeners */
 
   runBtn.addEventListener("click", (e) => {

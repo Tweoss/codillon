@@ -1,11 +1,7 @@
-import { AST, LineID, Location } from "./ast.js";
-import createAutocomplete, {
-  Autocomplete,
-  listCompletions,
-  checkValidSyntax,
-} from "./autocomplete.js";
+import { AST, Location } from "./ast.js";
+import createAutocomplete, { Autocomplete } from "./autocomplete.js";
 import Block, { applySyntaxHighlighting, setCursor } from "./block.js";
-import { globalStates } from "./global_variables.js";
+import { LineID, globalStates } from "./global_variables.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -15,7 +11,11 @@ template.innerHTML = `<style>
     box-sizing: border-box;
     -webkit-tap-highlight-color: red;
     height: 24px;
-    border-bottom: 1px dashed var(--border-color);
+    background-image: linear-gradient(to right, var(--border-color) 33%, white 0%);
+    background-position: bottom;
+    background-size: 12px 1px;
+    background-repeat: repeat-x;
+    background-clip: content-box;
   }
   .error {
     text-decoration: underline;
@@ -61,12 +61,13 @@ function init({
   let autocomplete: Autocomplete | null = null;
 
   /* State variables */
-  let completions = [] as string[];
+  let completions = [] as readonly string[];
   let preValidState: string | null = null;
   let saved_in_ast = false;
+  let inFunction: boolean = false;
 
   /* DOM update functions */
-  function addAutocomplete(completions: string[]): void {
+  function addAutocomplete(completions: readonly string[]): void {
     if (!completions || globalStates.isRunning) return;
     removeAutocomplete();
     autocomplete = createAutocomplete({
@@ -89,6 +90,12 @@ function init({
   }
 
   /* State update functions */
+  function setIndentation() {
+    inFunction = Boolean(ast.inner?.get_function(line_id));
+    inFunction
+      ? lineElement.classList.add("indent")
+      : lineElement.classList.remove("indent");
+  }
   /* State logic */
   function completionError() {
     lineElement.animate(
@@ -115,7 +122,7 @@ function init({
       deleteLine(update);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      completions = listCompletions(block.getContent());
+      completions = ast.inner.get_autocomplete(line_id, block.getContent());
       if (block.getContent() && completions.length > 0) {
         block.setContent(completions[0]);
         lineElement.classList.remove("error");
@@ -131,7 +138,7 @@ function init({
     value
       ? block.div.classList.remove("empty")
       : block.div.classList.add("empty");
-    completions = listCompletions(value);
+    completions = ast.inner.get_autocomplete(line_id, value);
     if (completions.length > 0) {
       if (!autocomplete) {
         addAutocomplete(completions);
@@ -170,12 +177,12 @@ function init({
       addNewLine(true, update);
       return;
     }
-    if (value == "(func") {
+    if (!inFunction && value == "(func") {
+      preValidState = value;
       if (saved_in_ast) {
         addNewLine(true, update);
         return;
       }
-      // TODO: handle if there is already a function block.
       if (addFunction(prev_line, update)) {
         saved_in_ast = true;
       }
@@ -260,6 +267,7 @@ function init({
       saved_in_ast,
       line_id,
       content: block.getContent(),
+      setIndentation,
     };
   }
 
