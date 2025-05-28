@@ -113,7 +113,7 @@ export class Execution {
       nearest: Math.round,
       sqrt: Math.sqrt,
     };
-    this.registerTypedOperations(dataTypes, intOperations, 2);
+    this.registerTypedOperations(intTypes, intOperations, 2);
     this.registerTypedOperations(floatTypes, floatOperations, 2);
     this.registerTypedOperations(floatTypes, floatUnaryOperations, 1);
   }
@@ -406,7 +406,7 @@ export class Execution {
 
   step(): boolean {
     if (
-      this.currentInstructionIndex >= this.currentFunction.body.length ||
+      this.currentInstructionIndex > this.currentFunction.body.length ||
       this.error
     ) {
       if (this.oldLine) {
