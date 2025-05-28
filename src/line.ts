@@ -252,7 +252,7 @@ function init({
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
     if (
-      !(controlEndTypes as Readonly<Array<string>>).includes(value) ||
+      (controlEndTypes as Readonly<Array<string>>).includes(value) ||
       (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
       (!saved_in_ast &&
         !ast.inner.place_instruction(
