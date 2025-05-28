@@ -162,7 +162,9 @@ function createEditor() {
   }
 
   function addControlFlow(ref: Line | null, startLine: Line): boolean {
-    const cur_function = ast.inner?.get_function(startLine().line_id);
+    const cur_function = ast.inner?.get_containing_function(
+      startLine().line_id,
+    );
     const start_instruction: ControlFlowInstruction = {
       name: startLine().content as ControlStartTypes,
       line: startLine().line_id,
@@ -204,7 +206,7 @@ function createEditor() {
     // Split from start up to and including reference line, then after reference line.
     // Or, if no reference, just append to end.
     const index = referenceLine ? getCurrentLineIndex(referenceLine) + 1 : 0;
-    lines = lines.slice(0, index).concat([line]).concat(lines.slice(index));
+    lines.splice(index, 0, line);
     updateLineNumbers();
     mapLineIdToIndex();
     if (referenceLine) {

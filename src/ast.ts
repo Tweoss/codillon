@@ -146,7 +146,7 @@ export class AST {
   //   }
   //   return null;
   // }
-  get_function(location: LineID): Function | null {
+  get_containing_function(location: LineID): Function | null {
     const index = globalStates.lineIdToIndex.get(location) as number;
     for (const f of this.functions) {
       const startLine = globalStates.lineIdToIndex.get(f.span[0]) as number;
@@ -159,7 +159,9 @@ export class AST {
   }
   get_autocomplete(location: LineID, prefix: string) {
     const instructionList: readonly string[] =
-      !prefix || this.get_function(location) ? instructions : ["(func"];
+      !prefix || this.get_containing_function(location)
+        ? instructions
+        : ["(func"];
     return instructionList.filter((instruction) =>
       prefix.startsWith(instruction.slice(0, prefix.length)),
     );
@@ -439,7 +441,8 @@ function parseInstructionWithArgs([text, line]: [string, LineID]): ParseResult<
             name,
           }) satisfies Instruction,
       );
-  } else if (vals.length === 2) {
+  }
+  if (vals.length === 2) {
     // TODO: better error reporting when const fails to parse
     const matches = (
       [

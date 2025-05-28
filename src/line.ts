@@ -2,7 +2,11 @@ import { AST, Location, Function } from "./ast.js";
 import createAutocomplete, { Autocomplete } from "./autocomplete.js";
 import Block, { applySyntaxHighlighting, setCursor } from "./block.js";
 import { LineID, globalStates } from "./global_variables.js";
-import { controlStartTypes, MarginWidth } from "./syntax.constants.js";
+import {
+  controlStartTypes,
+  controlEndTypes,
+  MarginWidth,
+} from "./syntax.constants.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
@@ -86,7 +90,9 @@ function init({
     removeAutocomplete();
     autocomplete = createAutocomplete({
       onSelect: (s) => {
-        block.setContent(s);
+        if (!block.getContent().includes(s)) {
+          block.setContent(s);
+        }
         lineElement.classList.remove("error");
         applySyntaxHighlighting(block.div);
         setCursor(block.div, block.getContent().length);
@@ -105,7 +111,7 @@ function init({
 
   /* State update functions */
   function setIndentation(level?: number) {
-    cur_function = ast.inner?.get_function(line_id);
+    cur_function = ast.inner?.get_containing_function(line_id);
     indentationLevel = level ? level : cur_function ? 1 : 0;
     indentBar.style.display = indentationLevel ? "block" : "none";
     indentBar.style.left = `${(indentationLevel - 1) * MarginWidth}px`;
@@ -139,7 +145,9 @@ function init({
       e.preventDefault();
       completions = ast.inner.get_autocomplete(line_id, block.getContent());
       if (block.getContent() && completions.length > 0) {
-        block.setContent(completions[0]);
+        if (!block.getContent().includes(completions[0])) {
+          block.setContent(completions[0]);
+        }
         lineElement.classList.remove("error");
         applySyntaxHighlighting(block.div);
         setCursor(block.div, block.getContent().length);
@@ -244,6 +252,7 @@ function init({
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
     if (
+      !(controlEndTypes as Readonly<Array<string>>).includes(value) ||
       (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
       (!saved_in_ast &&
         !ast.inner.place_instruction(
