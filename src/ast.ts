@@ -507,7 +507,8 @@ function parseInstructionWithArgs([text, line]: [
             name,
           }) satisfies Instruction,
       );
-  } else if (vals.length === 2) {
+  }
+  if (vals.length === 2) {
     // TODO: better error reporting when const fails to parse
     const matches = (
       [
