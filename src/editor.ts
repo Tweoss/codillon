@@ -11,7 +11,11 @@ import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
 import { Execution, createExecution } from "./execute.js";
 import { LineID, globalStates } from "./global_variables.js";
-import { ControlStartTypes, InstructionName } from "./syntax.constants.js";
+import {
+  controlStartTypes,
+  ControlStartTypes,
+  InstructionName,
+} from "./syntax.constants.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -165,30 +169,29 @@ function createEditor() {
     const cur_function = ast.inner?.get_containing_function(
       startLine().line_id,
     );
-    const start_instruction: ControlFlowInstruction = {
-      name: startLine().content as ControlStartTypes,
-      line: startLine().line_id,
-      metadata: {
-        endPos: startLine().line_id + 2,
-      },
-    };
-    const end_instruction: Instruction = {
-      name: "end" as InstructionName,
-      line: startLine().line_id + 2,
-    };
-    if (
-      !ast.inner!.place_control_flow(
-        cur_function,
-        start_instruction,
-        end_instruction,
-      )
-    )
-      return false;
+    if (!cur_function) return false;
     const space_line = addNewLine(false, startLine);
     const paren_line = addNewLine(false, space_line);
     paren_line({ content: "end", saved_in_ast: true });
     space_line({ focus: true });
-    space_line().setIndentation(startLine().indentationLevel + 1);
+    paren_line().setIndentation(startLine().indentationLevel);
+    const start_instruction: ControlFlowInstruction = {
+      name: startLine().content as ControlStartTypes,
+      line: startLine().line_id,
+      metadata: {
+        endPos: paren_line().line_id,
+      },
+      body: [],
+    };
+    const end_instruction: Instruction = {
+      name: "end" as InstructionName,
+      line: paren_line().line_id,
+    };
+    ast.inner!.place_control_flow(
+      cur_function,
+      start_instruction,
+      end_instruction,
+    );
     return true;
   }
 
@@ -211,7 +214,14 @@ function createEditor() {
     mapLineIdToIndex();
     if (referenceLine) {
       contentEditor.insertBefore(lineDOM, referenceLine().div.nextSibling);
-      line().setIndentation(referenceLine().indentationLevel);
+      const indentLevel =
+        referenceLine().indentationLevel +
+        ((controlStartTypes as Readonly<Array<string>>).includes(
+          referenceLine().content,
+        )
+          ? 1
+          : 0);
+      line().setIndentation(indentLevel);
     } else {
       contentEditor.prepend(lineDOM);
       line().setIndentation();
@@ -221,7 +231,6 @@ function createEditor() {
       requestAnimationFrame(() => {
         line({ focus: true });
       });
-    console.log(ast.inner);
     return line;
   }
 
@@ -267,9 +276,10 @@ function createEditor() {
   }
 
   function mapLineIdToIndex() {
-    lines.forEach((line, idx) =>
-      globalStates.lineIdToIndex.set(line().line_id, idx),
-    );
+    globalStates.lineIdToIndex.clear();
+    lines.forEach((line, idx) => {
+      globalStates.lineIdToIndex.set(line().line_id, idx);
+    });
   }
   /* Event listeners */
 

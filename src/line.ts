@@ -217,8 +217,8 @@ function init({
     ) {
       if (!saved_in_ast && addControlFlow(prev_line, update)) {
         saved_in_ast = true;
+        return;
       }
-      return;
     }
     if (saved_in_ast) {
       if (ast.inner.update_line([value, line_id], true)) {
