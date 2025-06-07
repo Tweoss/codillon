@@ -45,17 +45,12 @@ function init() {
 
   /* DOM update functions */
   function plotPoints(points: Array<[number, number]>) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // window is -1 to 1 in x and y
     if (points.length === 0) return;
-    let minX = Math.min(...points.map(([x]) => x));
-    let maxX = Math.max(...points.map(([x]) => x));
-    let minY = Math.min(...points.map(([_, y]) => y));
-    let maxY = Math.max(...points.map(([_, y]) => y));
-    const pad = 0.1;
-    minX -= pad;
-    maxX += pad;
-    minY -= pad;
-    maxY += pad;
+    const minX = -1;
+    const maxX = 1;
+    const minY = -1;
+    const maxY = 1;
     function mapX(x: number) {
       return ((x - minX) / (maxX - minX)) * canvas.width;
     }

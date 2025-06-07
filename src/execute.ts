@@ -6,6 +6,7 @@ import {
   InstructionWithImmediate,
   AllInstruction,
 } from "./ast.js";
+import { Canvas } from "./canvas.js";
 import { Line } from "./line.js";
 import {
   InstructionName,
@@ -45,8 +46,14 @@ export class Execution {
   private currentIndex: number = 0;
   private executedBranch: boolean = false;
   private locals: Map<string, StackValue> = new Map();
+  private canvas: Canvas;
 
-  constructor(func: Function, stackVisualization: HTMLElement, lines_: Line[]) {
+  constructor(
+    func: Function,
+    stackVisualization: HTMLElement,
+    canvas: Canvas,
+    lines_: Line[],
+  ) {
     if (!Execution.initialized) {
       Execution.registerConstants();
       Execution.registerArithmeticOperations();
@@ -56,12 +63,14 @@ export class Execution {
       Execution.registerConversionOperations();
       Execution.registerBranchOperations();
       Execution.registerLocalOperations();
+      Execution.registerCallOperation();
       Execution.initialized = true;
     }
     this.currentFunction = func;
     this.stackVisualization = stackVisualization;
     this.lines = lines_;
     this.stack = [];
+    this.canvas = canvas;
     // Initialize stack visualization
     const stackItems = this.stackVisualization.querySelector("#stack-items");
     if (stackItems) {
@@ -111,6 +120,22 @@ export class Execution {
         },
       );
     });
+  }
+
+  private static registerCallOperation() {
+    this.instructionHandlers.set(
+      "call",
+      (exec, instruction: InstructionWithLabel) => {
+        const name = instruction.label as string;
+        if (name != "$draw" || exec.stack.length < 2) {
+          exec.error = true;
+          return;
+        }
+        const x = exec.stack.pop()!;
+        const y = exec.stack.pop()!;
+        exec.canvas.plotPoints([[x[1], y[1]]]);
+      },
+    );
   }
 
   private findBlockContextByLabel(
@@ -479,7 +504,6 @@ export class Execution {
     console.log("Updating stack visualization");
     console.log("Current stack:", this.stack);
     const stackItems = this.stackVisualization.querySelector("#stack-items");
-    console.log("Stack items element:", stackItems);
     if (!stackItems) {
       console.error("Could not find #stack-items element");
       return;
@@ -496,7 +520,6 @@ export class Execution {
                 `<div class="stack-item">${value[0]}, ${value[1]}</div>`,
             )
             .join("");
-    console.log("Generated HTML:", html);
     stackItems.innerHTML = html;
   }
 
@@ -511,7 +534,6 @@ export class Execution {
 
     if (currentLine) {
       const container = currentLine().div;
-      console.log("Found container:", container);
       if (container) {
         container.classList.add("executing");
         console.log("Added executing class to container");
@@ -584,9 +606,10 @@ export function createExecution(
   ast: AST,
   stackVisualization: HTMLElement,
   lines: Line[],
+  canvas: Canvas,
 ): Execution | null {
   if (ast.functions.length === 0) {
     return null;
   }
-  return new Execution(ast.functions[0], stackVisualization, lines);
+  return new Execution(ast.functions[0], stackVisualization, canvas, lines);
 }

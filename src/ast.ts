@@ -57,6 +57,14 @@ export class AST {
       if (f.span[0] == id) return content == "(func";
       if (f.span[1] == id) return content == ")";
       // TODO: other function entries.
+      const containing_block = this.get_containing_block(f.body, id);
+      if (containing_block) {
+        const instruction = parseInstructionWithArgs([content, id]);
+        if (instruction.result.type == "error") return false;
+        const i = containing_block.body.findIndex((l) => l.line == id);
+        if (save) containing_block.body[i] = instruction.result.value;
+        return true;
+      }
       for (let [i, prev] of f.body.entries()) {
         if (prev.line != id) {
           continue;
@@ -72,6 +80,7 @@ export class AST {
         return true;
       }
     }
+    console.log("could not find instruction to update");
     return false;
   }
   place_control_flow(cur_line: [string, LineID], save: boolean) {

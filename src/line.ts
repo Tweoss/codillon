@@ -243,7 +243,8 @@ function init({
         saved_in_ast = true;
       }
       return;
-    } else if (
+    }
+    if (
       (controlStartTypes as Readonly<Array<string>>).includes(
         value.split(" ")[0],
       )

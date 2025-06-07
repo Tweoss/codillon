@@ -126,6 +126,7 @@ function createEditor() {
     "loop $circle",
     "local.get $x",
     "local.get $y",
+    "call $draw",
     "local.get $x",
     "local.get $y",
     "local.get $d",
@@ -603,19 +604,11 @@ function createEditor() {
           ast.inner,
           stackVisualization,
           lines,
+          canvas,
         );
       }
       let i = 0;
       if (currentExecution) {
-        currentExecution?.setAfterStepCallback((exec, instr) => {
-          if (
-            instr.name === "br_if" &&
-            "label" in instr &&
-            instr.label === "$circle"
-          ) {
-            plotPointsAtEnd();
-          }
-        });
         const interval = setInterval(() => {
           const hasMore = currentExecution!.step();
           updateRunningState(true);
@@ -624,7 +617,6 @@ function createEditor() {
           }
           i++;
           if (!hasMore) {
-            plotPointsAtEnd();
             currentExecution = null;
             updateRunningState(false);
           }
@@ -636,7 +628,12 @@ function createEditor() {
     e.preventDefault();
     if (!globalStates.isRunning && ast.inner) {
       console.log("Starting execution with AST:", ast);
-      currentExecution = createExecution(ast.inner, stackVisualization, lines);
+      currentExecution = createExecution(
+        ast.inner,
+        stackVisualization,
+        lines,
+        canvas,
+      );
       if (currentExecution) {
         updateRunningState(true);
       }
@@ -647,7 +644,6 @@ function createEditor() {
     e.preventDefault();
     if (globalStates.isRunning) {
       console.log("Stopping execution");
-      plotPointsAtEnd();
       currentExecution = null;
       updateRunningState(false);
       document.querySelectorAll(".line").forEach((container) => {
@@ -661,20 +657,11 @@ function createEditor() {
     if (globalStates.isRunning && currentExecution) {
       const hasMore = currentExecution.step();
       if (!hasMore) {
-        plotPointsAtEnd();
         currentExecution = null;
         updateRunningState(false);
       }
     }
   });
-
-  function plotPointsAtEnd() {
-    console.log("Plotting points");
-    if (!currentExecution) return;
-    const stack = currentExecution.getStack();
-    const points = stackToPoints(stack);
-    canvas.plotPoints(points);
-  }
 
   return frag;
 }
