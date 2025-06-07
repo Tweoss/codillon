@@ -47,10 +47,10 @@ function init() {
   function plotPoints(points: Array<[number, number]>) {
     // window is -1 to 1 in x and y
     if (points.length === 0) return;
-    const minX = -1;
-    const maxX = 1;
-    const minY = -1;
-    const maxY = 1;
+    const minX = -1.1;
+    const maxX = 1.1;
+    const minY = -1.1;
+    const maxY = 1.1;
     function mapX(x: number) {
       return ((x - minX) / (maxX - minX)) * canvas.width;
     }
