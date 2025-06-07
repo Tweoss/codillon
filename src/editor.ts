@@ -103,6 +103,7 @@ function createEditor() {
   /* State variables. */
   const initial_lines = [
     "(func",
+    "call $clear",
     "local $n_iter i32",
     "i32.const 100",
     "local.set $n_iter",

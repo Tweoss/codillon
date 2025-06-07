@@ -127,13 +127,17 @@ export class Execution {
       "call",
       (exec, instruction: InstructionWithLabel) => {
         const name = instruction.label as string;
-        if (name != "$draw" || exec.stack.length < 2) {
+        if ((name != "$draw" || exec.stack.length < 2) && name != "$clear") {
           exec.error = true;
           return;
         }
-        const x = exec.stack.pop()!;
-        const y = exec.stack.pop()!;
-        exec.canvas.plotPoints([[x[1], y[1]]]);
+        if (name == "$draw") {
+          const x = exec.stack.pop()!;
+          const y = exec.stack.pop()!;
+          exec.canvas.plotPoints([[x[1], y[1]]]);
+        } else if (name == "$clear") {
+          exec.canvas.clear();
+        }
       },
     );
   }

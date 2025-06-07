@@ -71,6 +71,9 @@ function init() {
       ctx.fill();
     }
   }
+  function clear() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
   /* State update functions */
   /* State logic */
   /* Event dispatchers */
@@ -78,6 +81,7 @@ function init() {
   return {
     frag,
     plotPoints,
+    clear,
     canvas,
   };
 }

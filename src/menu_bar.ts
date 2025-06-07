@@ -59,7 +59,7 @@ template.innerHTML = `
     }
     
     /* Execution control buttons styling */
-    .left-buttons button {
+    .left-buttons button, .right-buttons button {
       background: #e3f2fd;
       border-color: #1976d2;
       color: #1976d2;
