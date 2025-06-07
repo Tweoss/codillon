@@ -52,6 +52,7 @@ export class AST {
   // TODO: removing instruction
   update_line([content, id]: [string, LineID], save: boolean): boolean {
     if (this.place_control_flow([content, id], save)) return true;
+    if (parseLocal([content, id])) return true;
     for (const f of this.functions) {
       if (f.span[0] == id) return content == "(func";
       if (f.span[1] == id) return content == ")";
@@ -149,6 +150,21 @@ export class AST {
   ): boolean {
     if (location == "start") return false;
     // TODO: make these lazily evaluated? maybe
+    const local = parseLocal(line);
+    if (local) {
+      const ref = location.after;
+      const curFunction = this.get_containing_function(ref);
+      if (!curFunction) return false;
+      const idx = curFunction.locals.findIndex((l) => l.name === local.name);
+      if (save) {
+        if (idx !== -1) {
+          curFunction.locals[idx] = local;
+        } else {
+          curFunction.locals.push(local);
+        }
+      }
+      return true;
+    }
     const instruction = parseInstructionWithArgs(line);
     if (instruction.result.type === "error") return false;
 
