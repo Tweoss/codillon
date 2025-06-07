@@ -1,8 +1,6 @@
 export const noArgInstructions = [
   "unreachable",
   "nop",
-  "block",
-  "loop",
   "if",
   "else",
   "end",
@@ -125,6 +123,7 @@ export const noArgInstructions = [
 ] as const;
 export const labelIndexInstructions = ["br", "br_if"] as const;
 export const labelIndexVectorLabelIndexInstructions = ["br_table"] as const;
+export const labelControlFlowInstructions = ["loop", "block"] as const;
 export const funcIndexInstructions = ["call"] as const;
 export const typeIndexInstructions = ["call_indirect"] as const;
 export const localIndexInstructions = [
@@ -176,6 +175,7 @@ export const instructions = [
   ...i64Instructions,
   ...f32Instructions,
   ...f64Instructions,
+  ...labelControlFlowInstructions,
 ] as const;
 
 export type InstructionName = (typeof instructions)[number];
@@ -370,3 +370,6 @@ export type ControlStartTypes = (typeof controlStartTypes)[number];
 export const controlEndTypes = ["end", ")"] as const;
 export type ControlEndTypes = (typeof controlEndTypes)[number];
 export const MarginWidth = 20;
+
+export type StackValue = [DataType, number];
+export type Point = [number, number];

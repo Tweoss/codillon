@@ -25,6 +25,7 @@ template.innerHTML = `
       overflow: scroll;
     }
     #block-bank.hidden {
+      height: 0;
       visibility: hidden;
     }
   </style>
