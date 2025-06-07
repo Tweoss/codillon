@@ -12,6 +12,7 @@ import {
   i64Instructions,
   f32Instructions,
   f64Instructions,
+  labelControlFlowInstructions,
 } from "./syntax.constants.js";
 
 export function validateUI32(text: string): boolean {
@@ -110,6 +111,10 @@ export function validateMemoryArgument(text: string, text2: string): boolean {
   return validateUI32(text) && validateUI32(text2);
 }
 
+export function validateControlFlowLabel(text: string): boolean {
+  return text.startsWith("$");
+}
+
 export function validateInstructionWithArgs(text: string): boolean {
   let vals = text.split(" ");
   if (vals.length === 1) {
@@ -137,6 +142,8 @@ export function validateInstructionWithArgs(text: string): boolean {
       return validateF32(vals[1] as any);
     } else if (f64Instructions.includes(vals[0] as any)) {
       return validateF64(vals[1] as any);
+    } else if (labelControlFlowInstructions.includes(vals[0] as any)) {
+      return validateControlFlowLabel(vals[1] as any);
     } else {
       return false;
     }

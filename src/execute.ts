@@ -4,6 +4,7 @@ import {
   Instruction,
   InstructionWithLabel,
   InstructionWithImmediate,
+  AllInstruction,
 } from "./ast.js";
 import { Line } from "./line.js";
 import {
@@ -12,9 +13,10 @@ import {
   intTypes,
   floatTypes,
   dataTypes,
+  StackValue,
+  labelIndexInstructions,
+  localIndexInstructions,
 } from "./syntax.constants.js";
-
-type StackValue = [DataType, number];
 
 const _buf = new ArrayBuffer(8);
 const _i32 = new Uint32Array(_buf);
@@ -38,6 +40,11 @@ export class Execution {
   // used to remove highlight from old line
   private oldLine: Line | null = null;
   private error: boolean = false;
+  private instructionStack: { body: AllInstruction[]; index: number }[] = [];
+  private currentBody: AllInstruction[] = [];
+  private currentIndex: number = 0;
+  private executedBranch: boolean = false;
+  private locals: Map<string, StackValue> = new Map();
 
   constructor(func: Function, stackVisualization: HTMLElement, lines_: Line[]) {
     if (!Execution.initialized) {
@@ -47,6 +54,8 @@ export class Execution {
       Execution.registerBitwiseOperations();
       Execution.registerParametricOperations();
       Execution.registerConversionOperations();
+      Execution.registerBranchOperations();
+      Execution.registerLocalOperations();
       Execution.initialized = true;
     }
     this.currentFunction = func;
@@ -58,6 +67,104 @@ export class Execution {
     if (stackItems) {
       stackItems.innerHTML = '<div class="stack-item">(empty stack)</div>';
     }
+    this.currentBody = this.currentFunction.body;
+    this.currentIndex = 0;
+    this.instructionStack = [];
+    this.locals = new Map<string, StackValue>();
+    for (const loc of func.locals) {
+      this.locals.set(loc.name, [loc.type, 0]);
+    }
+  }
+
+  private static registerLocalOperations() {
+    localIndexInstructions.forEach((instr) => {
+      this.instructionHandlers.set(
+        instr,
+        (exec, instruction: InstructionWithLabel) => {
+          const name = instruction.label as string;
+          if (
+            !exec.locals.has(name) ||
+            (exec.stack.length < 1 &&
+              (instr === "local.set" || instr === "local.tee"))
+          ) {
+            exec.error = true;
+            return;
+          }
+          if (instr === "local.get") {
+            exec.stack.push(exec.locals.get(name)!);
+          } else if (instr === "local.set") {
+            exec.locals.set(name, exec.stack.pop()!);
+          } else if (instr === "local.tee") {
+            const val = exec.stack[exec.stack.length - 1];
+            exec.locals.set(name, val);
+          }
+        },
+      );
+    });
+  }
+
+  private findBlockContextByLabel(
+    label: string | number,
+  ): { body: AllInstruction[]; index: number } | null {
+    let stack = [
+      ...this.instructionStack,
+      { body: this.currentBody, index: this.currentIndex },
+    ];
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const { body } = stack[i];
+      for (let j = 0; j < body.length; j++) {
+        const instr = body[j];
+        if (
+          "label" in instr &&
+          instr.label === label &&
+          "metadata" in instr &&
+          instr.metadata.endPos !== undefined
+        ) {
+          if (instr.name === "loop") {
+            console.log("loop", instr.body);
+            return { body: instr.body, index: 0 };
+          } else if (instr.name === "block") {
+            for (let k = j + 1; k < body.length; k++) {
+              const maybeEnd = body[j];
+              if (
+                "line" in maybeEnd &&
+                maybeEnd.line === instr.metadata.endPos
+              ) {
+                return { body, index: k + 1 };
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private static registerBranchOperations() {
+    labelIndexInstructions.forEach((instr) => {
+      this.instructionHandlers.set(
+        instr,
+        (exec, instruction: InstructionWithLabel) => {
+          if (instr === "br_if") {
+            if (exec.stack.length < 1) {
+              exec.error = true;
+              return;
+            }
+            const cond = exec.stack.pop()!;
+            if (cond[1] === 0) return;
+          }
+          const context = exec.findBlockContextByLabel(instruction.label);
+          if (context) {
+            exec.currentBody = context.body;
+            exec.currentIndex = context.index;
+            exec.executedBranch = true;
+          } else {
+            exec.error = true;
+          }
+          return;
+        },
+      );
+    });
   }
 
   private static registerConstants() {
@@ -372,6 +479,8 @@ export class Execution {
       : this.stack.length === 0
         ? '<div class="stack-item">(empty stack)</div>'
         : [...this.stack]
+            .slice()
+            .reverse()
             .map(
               (value) =>
                 `<div class="stack-item">${value[0]}, ${value[1]}</div>`,
@@ -381,8 +490,8 @@ export class Execution {
     stackItems.innerHTML = html;
   }
 
-  private highlightCurrentInstruction() {
-    const lineId = this.currentFunction.body[this.currentInstructionIndex].line;
+  private highlightCurrentInstruction(instruction: AllInstruction) {
+    const lineId = instruction.line;
     console.log("Looking for line with ID:", lineId);
     console.log("All lines:", document.querySelectorAll(".line"));
 
@@ -405,23 +514,59 @@ export class Execution {
   }
 
   step(): boolean {
+    if (this.error) {
+      console.log("Big Error", this.error);
+    }
     if (
       this.currentInstructionIndex > this.currentFunction.body.length ||
       this.error
     ) {
+      if (this.instructionStack.length > 0) {
+        const prev = this.instructionStack.pop()!;
+        this.currentBody = prev.body;
+        this.currentIndex = prev.index;
+        return this.step();
+      }
       if (this.oldLine) {
         this.oldLine().div.classList.remove("executing");
       }
       return false; // Execution complete
     }
 
-    const instruction = this.currentFunction.body[this.currentInstructionIndex];
+    const instruction = this.currentBody[this.currentIndex];
+    if (!instruction) return false;
     console.log("executing", instruction);
-    this.highlightCurrentInstruction();
+    this.highlightCurrentInstruction(instruction);
+
+    if ("body" in instruction && Array.isArray(instruction.body)) {
+      this.instructionStack.push({
+        body: this.currentBody,
+        index: this.currentIndex + 1,
+      });
+      this.currentBody = instruction.body;
+      this.currentIndex = 0;
+      return this.step();
+    }
+    if (instruction.name === "end") {
+      if (this.instructionStack.length > 0) {
+        const prev = this.instructionStack.pop()!;
+        this.currentBody = prev.body;
+        this.currentIndex = prev.index;
+        return this.step();
+      }
+      this.currentIndex++;
+      return true;
+    }
+
+    this.executedBranch = false;
     this.executeInstruction(instruction);
-    this.currentInstructionIndex++;
+    if (!this.executedBranch) this.currentIndex++;
     this.updateStackVisualization();
     return true;
+  }
+
+  getStack(): StackValue[] {
+    return this.stack;
   }
 }
 

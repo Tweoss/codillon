@@ -39,6 +39,8 @@ template.innerHTML = `
       padding: 10px;
       font-family: monospace;
       z-index: 1;
+      max-height: 600px;
+      overflow: scroll;
     }
     #stack-visualization.visible {
       display: block;
@@ -114,6 +116,7 @@ template.innerHTML = `
       <button id="step-into-btn" class="button press-effect">Step Into</button>
       <button id="step-out-btn" class="button press-effect">Step Out</button>
       <button id="stop-btn" class="button press-effect">Stop</button>
+      <button id="run-fast-btn" class="button press-effect">Run Fast</button>
     </div>
     <div class="center-buttons file-buttons">
       <button id="upload-btn" class="button press-effect">Upload .wat</button>
@@ -145,6 +148,7 @@ function init() {
     "stop-btn",
     "upload-btn",
     "download-btn",
+    "run-fast-btn",
   ] as const);
   const menuBar = frag.querySelector("#menu-bar") as HTMLDivElement;
   const runBtn = nodes["run-btn"] as HTMLButtonElement;
@@ -152,6 +156,7 @@ function init() {
   const stepIntoBtn = nodes["step-into-btn"] as HTMLButtonElement;
   const stepOutBtn = nodes["step-out-btn"] as HTMLButtonElement;
   const stopBtn = nodes["stop-btn"] as HTMLButtonElement;
+  const runFastBtn = nodes["run-fast-btn"] as HTMLButtonElement;
   const transitionBtn = nodes["transition-btn"] as HTMLButtonElement;
   const uploadBtn = nodes["upload-btn"] as HTMLButtonElement;
   const downloadBtn = nodes["download-btn"] as HTMLButtonElement;
@@ -241,6 +246,7 @@ function init() {
     stepIntoBtn,
     stepOutBtn,
     stopBtn,
+    runFastBtn,
     transitionBtn,
     stackVisualization,
     setFileHandlers,

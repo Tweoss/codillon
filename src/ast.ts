@@ -16,12 +16,17 @@ import {
   controlStartTypes,
   ControlStartTypes,
   controlEndTypes,
+  dataTypes,
 } from "./syntax.constants.js";
 import { LineID, globalStates } from "./global_variables.js";
 
 let counter = 0;
 export function new_line_id(): LineID {
   return counter++;
+}
+
+export function get_cur_line_id(): LineID {
+  return counter;
 }
 
 export type Location = { after: LineID } | "start";
@@ -46,8 +51,7 @@ export class AST {
   }
   // TODO: removing instruction
   update_line([content, id]: [string, LineID], save: boolean): boolean {
-    if ((controlStartTypes as Readonly<Array<string>>).includes(content))
-      return true;
+    if (this.place_control_flow([content, id], save)) return true;
     for (const f of this.functions) {
       if (f.span[0] == id) return content == "(func";
       if (f.span[1] == id) return content == ")";
@@ -69,11 +73,28 @@ export class AST {
     }
     return false;
   }
-  place_control_flow(
-    cur_function: Function,
-    startInstruction: ControlFlowInstruction,
-    endInstruction: Instruction,
-  ) {
+  place_control_flow(cur_line: [string, LineID], save: boolean) {
+    const cur_function = this.get_containing_function(cur_line[1]);
+    const lineContent = cur_line[0].split(" ");
+    if (
+      !cur_function ||
+      !(controlStartTypes as readonly string[]).includes(lineContent[0])
+    )
+      return false;
+    const label = lineContent[1] ?? undefined;
+    const startInstruction: ControlFlowInstruction = {
+      name: lineContent[0] as ControlStartTypes,
+      line: cur_line[1],
+      metadata: {
+        endPos: get_cur_line_id() + 2,
+      },
+      body: [],
+      ...(label !== undefined ? { label } : {}),
+    };
+    const endInstruction: Instruction = {
+      name: "end" as InstructionName,
+      line: get_cur_line_id() + 2,
+    };
     const containingBlock = this.get_containing_block(
       cur_function.body,
       startInstruction.line,
@@ -81,10 +102,18 @@ export class AST {
     const targetBody = containingBlock
       ? containingBlock.body
       : cur_function.body;
-    targetBody.push(startInstruction);
-    targetBody.push(endInstruction);
-    const nameParts = startInstruction.name.split(" ");
-    if (nameParts.length > 1) {
+    if (save) {
+      targetBody.push(startInstruction);
+      targetBody.push(endInstruction);
+    }
+    const nameParts = cur_line[0].split(" ");
+    if (nameParts[0] !== "if") {
+      if (
+        nameParts.length <= 1 ||
+        !nameParts[1].startsWith("$") ||
+        nameParts[1].length <= 1
+      )
+        return false;
       const labelResult = parseLabel(nameParts[1], startInstruction.line);
       if (labelResult.result.type === "ok") {
         startInstruction.label = labelResult.result.value;
@@ -92,21 +121,22 @@ export class AST {
     }
     return true;
   }
-  place_function(
-    location: { after: LineID } | "start",
-    span: [LineID, LineID],
-    save: boolean,
-  ): boolean {
-    if (location == "start") {
-      if (save) this.functions.unshift(new Function([], null, [], [], span));
-      return true;
-    }
-    // Make sure location
-    for (const [i, f] of this.functions.entries()) {
-      if (location.after == f.span[1]) {
-        if (save)
-          this.functions.splice(i + 1, 0, new Function([], null, [], [], span));
-        return true;
+  place_function(span: [LineID, LineID], save: boolean): boolean {
+    const insideFunction = this.get_containing_function(span[0]);
+    if (!insideFunction) {
+      const curLineNumber = globalStates.lineIdToIndex.get(span[0]) as number;
+      for (const [i, f] of this.functions.entries()) {
+        if (
+          curLineNumber > (globalStates.lineIdToIndex.get(f.span[1]) as number)
+        ) {
+          if (save)
+            this.functions.splice(
+              i + 1,
+              0,
+              new Function([], null, [], [], span),
+            );
+          return true;
+        }
       }
     }
     return false;
@@ -119,8 +149,6 @@ export class AST {
   ): boolean {
     if (location == "start") return false;
     // TODO: make these lazily evaluated? maybe
-    if ((controlStartTypes as Readonly<Array<string>>).includes(line[0]))
-      return true;
     const instruction = parseInstructionWithArgs(line);
     if (instruction.result.type === "error") return false;
 
@@ -184,7 +212,7 @@ export class AST {
     for (const f of this.functions) {
       const startLine = globalStates.lineIdToIndex.get(f.span[0]) as number;
       const endLine = globalStates.lineIdToIndex.get(f.span[1]) as number;
-      if (index > startLine && index < endLine) {
+      if (index >= startLine && index <= endLine) {
         return f;
       }
     }
@@ -203,14 +231,14 @@ export class AST {
 export class Function {
   argument_types: { type: DataType; label?: string }[];
   return_type: DataType | null;
-  locals: string[];
+  locals: Local[];
   body: AllInstruction[];
   span: [LineID, LineID];
 
   constructor(
     argument_types: { type: DataType; label?: string | undefined }[],
     return_type: DataType | null,
-    locals: string[],
+    locals: Local[],
     body: AllInstruction[],
     span: [number, number],
   ) {
@@ -238,20 +266,32 @@ export class Function {
     const remainder = lines.slice(end_index + 1);
     const end = lines[end_index];
 
+    const locals: Local[] = [];
+    const instructionLines: [string, LineID][] = [];
+    for (const line of functionLines) {
+      const local = parseLocal(line);
+      if (local) {
+        locals.push(local);
+      } else {
+        instructionLines.push(line);
+      }
+    }
+
     let body: AllInstruction[];
     try {
-      [body] = parseBlock([...functionLines]);
+      [body] = parseBlock([...instructionLines]);
     } catch (e: any) {
       return ParseResult.err(e.message, start[1]);
     }
 
     return ParseResult.ok([
-      new Function([], null, [], body, [start[1], end[1]]),
+      new Function([], null, locals, body, [start[1], end[1]]),
       remainder,
     ]);
   }
 }
 
+export type Local = { name: string; type: DataType };
 export type Instruction = { name: InstructionName; line: LineID };
 export type InstructionWithLabel = Instruction & { label: string | number };
 export type InstructionWithImmediate = Instruction & { argument: number };
@@ -434,6 +474,20 @@ function parseLabel(text: string, line: LineID): ParseResult<number | string> {
     .or(parseUI32(text, line));
 }
 
+function parseLocal(line: [string, LineID]): Local | null {
+  const [text] = line;
+  const parts = text.trim().split(/\s+/);
+  if (parts.length === 3 && parts[0] === "local" && parts[1].startsWith("$")) {
+    const name = parts[1];
+    const type = parts[2] as DataType;
+    if (!(dataTypes as Readonly<Array<string>>).includes(type)) {
+      throw new Error(`invalid type at line ${line[1]}`);
+    }
+    return { name, type };
+  }
+  return null;
+}
+
 function parseBlock(
   lines: [string, LineID][],
 ): [AllInstruction[], [string, LineID][]] {
@@ -442,7 +496,10 @@ function parseBlock(
   while (i < lines.length) {
     const [text, line] = lines[i];
     const name = text.split(" ")[0];
-    if ((controlEndTypes as Readonly<Array<string>>).includes(name)) {
+    if (
+      (controlEndTypes as Readonly<Array<string>>).includes(name) ||
+      name === "(func"
+    ) {
       break;
     }
     if (text.trim() === "") {
@@ -451,6 +508,14 @@ function parseBlock(
     }
     if ((controlStartTypes as Readonly<Array<string>>).includes(name)) {
       const startLine = lines[i];
+      const nameParts = startLine[0].split(" ");
+      let label: string | number | undefined = undefined;
+      if (nameParts.length > 1) {
+        const labelResult = parseLabel(nameParts[1], startLine[1]);
+        if (labelResult.result.type === "ok") {
+          label = labelResult.result.value;
+        }
+      }
       const [nestedBody, rest] = parseBlock(lines.slice(i + 1));
       if (
         rest.length === 0 ||
@@ -462,12 +527,18 @@ function parseBlock(
       }
       const endLine = rest[0];
       const controlInstr: ControlFlowInstruction = {
-        name: startLine[0] as ControlStartTypes,
+        name: nameParts[0] as ControlStartTypes,
         line: startLine[1],
         metadata: { endPos: endLine[1] },
         body: nestedBody,
+        ...(label !== undefined ? { label } : {}),
       };
       body.push(controlInstr);
+      const endInstr: Instruction = {
+        name: endLine[0] as InstructionName,
+        line: endLine[1],
+      };
+      body.push(endInstr);
       i += nestedBody.length + 2;
       continue;
     }

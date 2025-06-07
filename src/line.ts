@@ -64,8 +64,8 @@ function init({
   wrapper: { inner: AST };
   line_id: LineID;
   addNewLine: (focus: boolean, ref: Line) => void;
-  addFunction: (ref: Line | null, currentLine: Line) => boolean;
-  addControlFlow: (ref: Line | null, currentLine: Line) => boolean;
+  addFunction: (startLine: Line) => boolean;
+  addControlFlow: (startLine: Line) => boolean;
   deleteLine: (ref: Line) => void;
   getPrevLineInAST: (ref: Line) => Line | null;
 }) {
@@ -117,7 +117,27 @@ function init({
     indentBar.style.left = `${(indentationLevel - 1) * MarginWidth}px`;
     lineElement.style.paddingLeft = `${indentationLevel * MarginWidth}px`;
   }
+  function setSavedInAST(saved: boolean) {
+    saved_in_ast = saved;
+  }
   /* State logic */
+  function curContentInvalid(
+    prev_line: any,
+    line: Line,
+    value: string,
+  ): boolean {
+    return (
+      (!saved_in_ast &&
+        ast.inner.place_control_flow([value, line().line_id], false)) ||
+      (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
+      (!saved_in_ast &&
+        !ast.inner.place_instruction(
+          prev_line ? { after: prev_line().line_id } : "start",
+          [value, line_id],
+          true,
+        ))
+    );
+  }
   function completionError() {
     lineElement.animate(
       [
@@ -174,18 +194,28 @@ function init({
     const line = update;
     const prev_line = getPrevLineInAST(line);
     const location = prev_line ? { after: prev_line().line_id } : "start";
+    const isControlFlow = ast.inner.place_control_flow(
+      [value, line().line_id],
+      false,
+    );
     if (
       (saved_in_ast && ast.inner.update_line([value, line_id], false)) ||
       // TODO: maybe extract span of function so not necessary if save = false
       (!saved_in_ast &&
         ((value == "(func" &&
-          ast.inner.place_function(location, [0, 0], false)) ||
-          ast.inner.place_instruction(location, [value, line_id], false)))
+          ast.inner.place_function(
+            [line().line_id, line().line_id + 2],
+            false,
+          )) ||
+          ast.inner.place_instruction(location, [value, line_id], false) ||
+          isControlFlow))
     ) {
       lineElement.classList.remove("error");
       // TODO: verify this is wanted behavior (user edits a box to something valid, then invalid, then exits. should
       // the box have the initial state or the most recent valid state)
-      preValidState = value;
+      if (!isControlFlow) {
+        preValidState = value;
+      }
     } else {
       lineElement.classList.add("error");
     }
@@ -196,7 +226,10 @@ function init({
     // TODO: handle updating a block (not just inserting)
     const line = update;
     const prev_line = getPrevLineInAST(line);
-    if (value.length == 0) {
+    if (
+      value.length == 0 ||
+      (controlEndTypes as Readonly<Array<string>>).includes(value)
+    ) {
       addNewLine(true, update);
       return;
     }
@@ -206,7 +239,7 @@ function init({
         addNewLine(true, update);
         return;
       }
-      if (addFunction(prev_line, update)) {
+      if (addFunction(update)) {
         saved_in_ast = true;
       }
       return;
@@ -215,10 +248,16 @@ function init({
         value.split(" ")[0],
       )
     ) {
-      if (!saved_in_ast && addControlFlow(prev_line, update)) {
+      if (
+        !saved_in_ast &&
+        ast.inner.place_control_flow([value, update().line_id], false)
+      ) {
         saved_in_ast = true;
-        return;
+        addControlFlow(update);
+      } else {
+        completionError();
       }
+      return;
     }
     if (saved_in_ast) {
       if (ast.inner.update_line([value, line_id], true)) {
@@ -251,17 +290,7 @@ function init({
     const line = update;
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
-    if (
-      // TODO: check if bad merge.
-      (controlEndTypes as Readonly<Array<string>>).includes(value) ||
-      (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
-      (!saved_in_ast &&
-        !ast.inner.place_instruction(
-          prev_line ? { after: prev_line().line_id } : "start",
-          [value, line_id],
-          true,
-        ))
-    ) {
+    if (curContentInvalid(prev_line, line, value)) {
       block.setContent(preValidState ?? "");
     }
 
@@ -303,6 +332,7 @@ function init({
       line_id,
       content: block.getContent(),
       setIndentation,
+      setSavedInAST,
       indentationLevel,
     };
   }

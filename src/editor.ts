@@ -1,6 +1,7 @@
 import {
   AST,
   new_line_id,
+  get_cur_line_id,
   Location,
   ControlFlowInstruction,
   Instruction,
@@ -27,6 +28,7 @@ import {
   localIndexInstructions,
   globalIndexInstructions,
 } from "./syntax.constants.js";
+import Canvas, { stackToPoints } from "./canvas.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -86,6 +88,8 @@ function createEditor() {
   const contentEditor = nodes["content-editor"] as HTMLDivElement;
   const blockBank = BlockBank();
   frag.append(blockBank);
+  const canvas = Canvas();
+  frag.append(canvas.frag);
   const menuBar = MenuBar();
   frag.prepend(menuBar.frag);
   const runBtn = menuBar.runBtn;
@@ -93,11 +97,62 @@ function createEditor() {
   const stepIntoBtn = menuBar.stepIntoBtn;
   const stepOutBtn = menuBar.stepOutBtn;
   const stopBtn = menuBar.stopBtn;
+  const runFastBtn = menuBar.runFastBtn;
   const transitionBtn = menuBar.transitionBtn;
   const stackVisualization = menuBar.stackVisualization;
 
   /* State variables. */
-  const initial_lines = ["(func", ")", "(func", ")"] as string[];
+  const initial_lines = [
+    "(func",
+    "local $n_iter i32",
+    "i32.const 100",
+    "local.set $n_iter",
+    "local $x f32",
+    "local $y f32",
+    "local $d f32",
+    "local $i i32",
+    "f32.const 1.0",
+    "local.set $x",
+    "f32.const 0.0",
+    "local.set $y",
+    "f32.const 3.141592653589793",
+    "f32.const 2",
+    "f32.mul",
+    "local.get $n_iter",
+    "f32.convert_i32_s",
+    "f32.div",
+    "local.set $d",
+    "i32.const 0",
+    "local.set $i",
+    "loop $circle",
+    "local.get $x",
+    "local.get $y",
+    "local.get $x",
+    "local.get $y",
+    "local.get $d",
+    "f32.mul",
+    "f32.add",
+    "local.set $x",
+    "local.get $y",
+    "local.get $x",
+    "local.get $d",
+    "f32.mul",
+    "f32.sub",
+    "local.set $y",
+    "local.get $i",
+    "i32.const 1",
+    "i32.add",
+    "local.set $i",
+    "local.get $i",
+    "local.get $n_iter",
+    "i32.lt_s",
+    "br_if $circle",
+    "end",
+    ")",
+    "(func",
+    "",
+    ")",
+  ] as string[];
   let lines: Line[] = [];
   let ast: { inner: AST | null } = { inner: null };
   let currentExecution: Execution | null = null;
@@ -158,17 +213,22 @@ function createEditor() {
     return prev_line;
   }
 
-  function addFunction(ref: Line | null, startLine: Line): boolean {
-    const loc = ref ? { after: ref().line_id } : "start";
-    if (!ast.inner!.place_function(loc, [0, 0], false)) return false;
+  function addFunction(startLine: Line): boolean {
+    if (
+      !ast.inner!.place_function(
+        [startLine().line_id, startLine().line_id + 2],
+        false,
+      )
+    )
+      return false;
     // Add the bottom paren and middle line
     const space_line = addNewLine(false, startLine);
     const paren_line = addNewLine(false, space_line);
     paren_line({ content: ")", saved_in_ast: true });
     space_line({ focus: true });
+    space_line().setIndentation(startLine().indentationLevel + 1);
     // Insert into AST
     ast.inner!.place_function(
-      loc,
       [startLine().line_id, paren_line().line_id],
       true,
     );
@@ -176,33 +236,24 @@ function createEditor() {
     return true;
   }
 
-  function addControlFlow(ref: Line | null, startLine: Line): boolean {
-    const cur_function = ast.inner?.get_containing_function(
-      startLine().line_id,
+  function addControlFlow(startLine: Line): boolean {
+    if (
+      !ast.inner!.place_control_flow(
+        [startLine().content, startLine().line_id],
+        false,
+      )
+    )
+      return false;
+    ast.inner!.place_control_flow(
+      [startLine().content, startLine().line_id],
+      true,
     );
-    if (!cur_function) return false;
     const space_line = addNewLine(false, startLine);
     const paren_line = addNewLine(false, space_line);
     paren_line({ content: "end", saved_in_ast: true });
     space_line({ focus: true });
+    space_line().setIndentation(startLine().indentationLevel + 1);
     paren_line().setIndentation(startLine().indentationLevel);
-    const start_instruction: ControlFlowInstruction = {
-      name: startLine().content as ControlStartTypes,
-      line: startLine().line_id,
-      metadata: {
-        endPos: paren_line().line_id,
-      },
-      body: [],
-    };
-    const end_instruction: Instruction = {
-      name: "end" as InstructionName,
-      line: paren_line().line_id,
-    };
-    ast.inner!.place_control_flow(
-      cur_function,
-      start_instruction,
-      end_instruction,
-    );
     return true;
   }
 
@@ -319,7 +370,9 @@ function createEditor() {
 
       if (validationErrors.length > 0) {
         alert(
-          `File validation errors:\n\n${validationErrors.join("\n")}\n\nThe file was not loaded.`,
+          `File validation errors:\n\n${validationErrors.join(
+            "\n",
+          )}\n\nThe file was not loaded.`,
         );
         return;
       }
@@ -485,7 +538,17 @@ function createEditor() {
     last_line = addNewLine(false, last_line);
   }
   for (const [i, _] of initial_lines.entries()) {
-    lines[i]({ content: initial_lines[i], saved_in_ast: true });
+    lines[i]({ content: initial_lines[i] });
+    const startLoop = 21;
+    const endLoop = 44;
+    if (initial_lines[i]) {
+      lines[i]().setSavedInAST(true);
+    }
+    if (i == startLoop || i == endLoop || (i > 0 && i < startLoop)) {
+      lines[i]().setIndentation(1);
+    } else if (i > startLoop && i < endLoop) {
+      lines[i]().setIndentation(2);
+    }
   }
 
   const dbg = <T,>(v: T) => {
@@ -531,6 +594,35 @@ function createEditor() {
   }
 
   /* Event listeners */
+  runFastBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (ast.inner) {
+      if (!globalStates.isRunning) {
+        console.log("Starting execution with AST:", ast);
+        currentExecution = createExecution(
+          ast.inner,
+          stackVisualization,
+          lines,
+        );
+      }
+      let i = 0;
+      if (currentExecution) {
+        updateRunningState(true);
+        const interval = setInterval(() => {
+          const hasMore = currentExecution!.step();
+          if (currentExecution && !hasMore && i < 1000) {
+            clearInterval(interval);
+          }
+          i++;
+          if (!hasMore) {
+            plotPointsAtEnd();
+            currentExecution = null;
+            updateRunningState(false);
+          }
+        }, 1);
+      }
+    }
+  });
   runBtn.addEventListener("click", (e) => {
     e.preventDefault();
     if (!globalStates.isRunning && ast.inner) {
@@ -546,6 +638,7 @@ function createEditor() {
     e.preventDefault();
     if (globalStates.isRunning) {
       console.log("Stopping execution");
+      plotPointsAtEnd();
       currentExecution = null;
       updateRunningState(false);
       document.querySelectorAll(".line").forEach((container) => {
@@ -559,11 +652,20 @@ function createEditor() {
     if (globalStates.isRunning && currentExecution) {
       const hasMore = currentExecution.step();
       if (!hasMore) {
+        plotPointsAtEnd();
         currentExecution = null;
         updateRunningState(false);
       }
     }
   });
+
+  function plotPointsAtEnd() {
+    console.log("Plotting points");
+    if (!currentExecution) return;
+    const stack = currentExecution.getStack();
+    const points = stackToPoints(stack);
+    canvas.plotPoints(points);
+  }
 
   return frag;
 }
