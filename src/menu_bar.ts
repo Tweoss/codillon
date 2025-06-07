@@ -2,6 +2,7 @@ import { get_nodes } from "./lib.js";
 import { setAsBlock, setAsText } from "./block.js";
 import { AST } from "./ast.js";
 import { globalStates } from "./global_variables.js";
+import { downloadWatFile, createFileInput } from "./file_operations.js";
 
 const template = document.createElement("template");
 template.innerHTML = `
@@ -15,6 +16,12 @@ template.innerHTML = `
       border-radius: 10px 10px 0 0;
       border: 1px solid var(--border-color);
       border-bottom: 0;
+    }
+    #menu-bar .left-buttons,
+    #menu-bar .center-buttons,
+    #menu-bar .right-buttons {
+      display: flex;
+      gap: 10px;
     }
     #menu-bar .right-buttons button {
       width: 100px;
@@ -43,6 +50,62 @@ template.innerHTML = `
     .stack-item:last-child {
       border-bottom: none;
     }
+    .file-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    /* Execution control buttons styling */
+    .left-buttons button {
+      background: #e3f2fd;
+      border-color: #1976d2;
+      color: #1976d2;
+      font-weight: 500;
+    }
+    
+    .left-buttons button:hover {
+      background: #bbdefb;
+    }
+    
+    .left-buttons button:active {
+      background: #90caf9;
+    }
+    
+    /* Stop button special styling */
+    #stop-btn {
+      background: #ffebee !important;
+      border-color: #d32f2f !important;
+      color: #d32f2f !important;
+    }
+    
+    #stop-btn:hover {
+      background: #ffcdd2 !important;
+    }
+    
+    #stop-btn:active {
+      background: #ef9a9a !important;
+    }
+    
+    /* Add emojis to execution buttons */
+    #run-btn::before {
+      content: "▶️ ";
+    }
+    
+    #step-over-btn::before {
+      content: "⏭️ ";
+    }
+    
+    #step-into-btn::before {
+      content: "⬇️ ";
+    }
+    
+    #step-out-btn::before {
+      content: "⬆️ ";
+    }
+    
+    #stop-btn::before {
+      content: "⏹️ ";
+    }
   </style>
   <div id="menu-bar" class="container">
     <div class="left-buttons">
@@ -51,6 +114,10 @@ template.innerHTML = `
       <button id="step-into-btn" class="button press-effect">Step Into</button>
       <button id="step-out-btn" class="button press-effect">Step Out</button>
       <button id="stop-btn" class="button press-effect">Stop</button>
+    </div>
+    <div class="center-buttons file-buttons">
+      <button id="upload-btn" class="button press-effect">Upload .wat</button>
+      <button id="download-btn" class="button press-effect">Download .wat</button>
     </div>
     <div class="right-buttons">
       <button id="transition-btn" class="button press-effect">show block</button>
@@ -76,6 +143,8 @@ function init() {
     "step-out-btn",
     "transition-btn",
     "stop-btn",
+    "upload-btn",
+    "download-btn",
   ] as const);
   const menuBar = frag.querySelector("#menu-bar") as HTMLDivElement;
   const runBtn = nodes["run-btn"] as HTMLButtonElement;
@@ -84,12 +153,16 @@ function init() {
   const stepOutBtn = nodes["step-out-btn"] as HTMLButtonElement;
   const stopBtn = nodes["stop-btn"] as HTMLButtonElement;
   const transitionBtn = nodes["transition-btn"] as HTMLButtonElement;
+  const uploadBtn = nodes["upload-btn"] as HTMLButtonElement;
+  const downloadBtn = nodes["download-btn"] as HTMLButtonElement;
   const stackVisualization = frag.querySelector(
     "#stack-visualization",
   ) as HTMLDivElement;
   const stackItems = frag.querySelector("#stack-items") as HTMLDivElement;
 
   /* State variables. */
+  let onFileUpload: ((content: string) => void) | null = null;
+  let getEditorContent: (() => string[]) | null = null;
 
   /* DOM update functions */
 
@@ -120,6 +193,15 @@ function init() {
     globalStates.mode = "text";
     document.querySelector("#block-bank")?.classList.add("hidden");
   }
+
+  /* Create file input element */
+  const fileInput = createFileInput((content, filename) => {
+    if (onFileUpload) {
+      onFileUpload(content);
+    }
+  });
+  menuBar.appendChild(fileInput);
+
   /* State logic */
   /* Event dispatchers */
   /* Event listeners */
@@ -127,6 +209,30 @@ function init() {
     e.preventDefault();
     globalStates.mode === "text" ? convertToBlock() : convertToText();
   });
+
+  uploadBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!globalStates.isRunning) {
+      fileInput.click();
+    }
+  });
+
+  downloadBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (getEditorContent) {
+      const content = getEditorContent();
+      downloadWatFile(content);
+    }
+  });
+
+  /* Public API */
+  function setFileHandlers(
+    uploadHandler: (content: string) => void,
+    contentGetter: () => string[],
+  ) {
+    onFileUpload = uploadHandler;
+    getEditorContent = contentGetter;
+  }
 
   return {
     frag,
@@ -137,6 +243,7 @@ function init() {
     stopBtn,
     transitionBtn,
     stackVisualization,
+    setFileHandlers,
   };
 }
 

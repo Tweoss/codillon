@@ -11,10 +11,21 @@ import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
 import { Execution, createExecution } from "./execute.js";
 import { LineID, globalStates } from "./global_variables.js";
+import { parseWatContent } from "./file_operations.js";
+import { applySyntaxHighlighting } from "./block.js";
 import {
   controlStartTypes,
   ControlStartTypes,
   InstructionName,
+  i32Instructions,
+  i64Instructions,
+  f32Instructions,
+  f64Instructions,
+  labelIndexInstructions,
+  funcIndexInstructions,
+  typeIndexInstructions,
+  localIndexInstructions,
+  globalIndexInstructions,
 } from "./syntax.constants.js";
 
 const DEFAULTS = { margin_width: 40 };
@@ -234,6 +245,240 @@ function createEditor() {
     return line;
   }
 
+  function handleFileUpload(content: string) {
+    if (globalStates.isRunning) {
+      alert("Cannot upload file while running");
+      return;
+    }
+
+    // Save current state for rollback
+    const backupLines = lines.map((line) => ({
+      content: line().content,
+      saved_in_ast: line().saved_in_ast,
+      line_id: line().line_id,
+    }));
+    const backupAst = ast.inner;
+    const backupContentEditorHTML = contentEditor.innerHTML;
+
+    try {
+      // Parse the WAT content
+      const parsedLines = parseWatContent(content);
+
+      if (parsedLines.length === 0) {
+        alert("The uploaded file appears to be empty");
+        return;
+      }
+
+      // Validate each line before proceeding
+      const validationErrors: string[] = [];
+      for (let i = 0; i < parsedLines.length; i++) {
+        const line = parsedLines[i].trim();
+        if (line === "" || line === "(func" || line === ")" || line === "end") {
+          continue; // These are valid as-is
+        }
+
+        // Check if it's a control flow instruction
+        if ((controlStartTypes as readonly string[]).includes(line)) {
+          continue;
+        }
+
+        // For other instructions, validate they have proper arguments
+        const parts = line.split(" ");
+        const instruction = parts[0];
+
+        // Check if this instruction requires arguments
+        if (
+          [
+            ...i32Instructions,
+            ...i64Instructions,
+            ...f32Instructions,
+            ...f64Instructions,
+          ].includes(instruction as any)
+        ) {
+          if (parts.length < 2) {
+            validationErrors.push(
+              `Line ${i + 1}: ${instruction} requires an argument`,
+            );
+          }
+        } else if (
+          [
+            ...labelIndexInstructions,
+            ...funcIndexInstructions,
+            ...typeIndexInstructions,
+            ...localIndexInstructions,
+            ...globalIndexInstructions,
+          ].includes(instruction as any)
+        ) {
+          if (parts.length < 2) {
+            validationErrors.push(
+              `Line ${i + 1}: ${instruction} requires an argument`,
+            );
+          }
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        alert(
+          `File validation errors:\n\n${validationErrors.join("\n")}\n\nThe file was not loaded.`,
+        );
+        return;
+      }
+
+      // Clear existing content
+      contentEditor.innerHTML = "";
+      lines = [];
+
+      // Reset the AST
+      ast.inner = null;
+
+      // Add lines from the uploaded file
+      let lastLine: Line | undefined = undefined;
+      for (let i = 0; i < Math.max(parsedLines.length, 10); i++) {
+        lastLine = addNewLine(false, lastLine);
+        if (i < parsedLines.length && parsedLines[i]) {
+          lastLine({ content: parsedLines[i], saved_in_ast: false });
+        }
+      }
+
+      // Try to parse the AST
+      const astLines: [string, LineID][] = [];
+      for (let i = 0; i < parsedLines.length; i++) {
+        if (lines[i] && parsedLines[i]) {
+          astLines.push([parsedLines[i], lines[i]().line_id]);
+        }
+      }
+
+      const astResult = AST.parse(astLines);
+      if (astResult.result.type === "ok") {
+        ast.inner = astResult.result.value;
+        // Mark lines as saved in AST
+        for (let i = 0; i < parsedLines.length; i++) {
+          if (lines[i]) {
+            lines[i]({ saved_in_ast: true });
+          }
+        }
+
+        // Update UI
+        updateLineNumbers();
+        mapLineIdToIndex();
+        lines.forEach((line) => line().setIndentation());
+
+        // Apply syntax highlighting by triggering the highlighting on each block
+        lines.forEach((line) => {
+          if (line().content.trim()) {
+            const lineDiv = line().div;
+            const blockContainer = lineDiv.querySelector(
+              ".block-container",
+            ) as HTMLDivElement;
+            if (blockContainer) {
+              applySyntaxHighlighting(blockContainer);
+            }
+          }
+        });
+
+        // Focus first line
+        if (lines[0]) {
+          requestAnimationFrame(() => {
+            lines[0]({ focus: true });
+          });
+        }
+      } else {
+        // AST parsing failed - rollback
+        console.error("Error parsing uploaded file:", astResult.result.error);
+
+        // Restore previous state
+        contentEditor.innerHTML = "";
+        lines = [];
+        ast.inner = backupAst;
+
+        // Recreate lines from backup
+        let lastRestoredLine: Line | undefined = undefined;
+        for (const backup of backupLines) {
+          lastRestoredLine = addNewLine(false, lastRestoredLine);
+          lastRestoredLine({
+            content: backup.content,
+            saved_in_ast: backup.saved_in_ast,
+          });
+        }
+
+        // Ensure we have at least 10 lines
+        while (lines.length < 10) {
+          lastRestoredLine = addNewLine(false, lastRestoredLine);
+        }
+
+        updateLineNumbers();
+        mapLineIdToIndex();
+        lines.forEach((line) => line().setIndentation());
+
+        // Apply syntax highlighting to restored content
+        lines.forEach((line) => {
+          if (line().content.trim()) {
+            const lineDiv = line().div;
+            const blockContainer = lineDiv.querySelector(
+              ".block-container",
+            ) as HTMLDivElement;
+            if (blockContainer) {
+              applySyntaxHighlighting(blockContainer);
+            }
+          }
+        });
+
+        alert(
+          `Error parsing file: ${astResult.result.error}\n\nThe editor has been restored to its previous state.`,
+        );
+      }
+    } catch (error) {
+      // Something went wrong during the upload process - rollback
+      console.error("Error during file upload:", error);
+
+      // Restore previous state
+      contentEditor.innerHTML = "";
+      lines = [];
+      ast.inner = backupAst;
+
+      // Recreate lines from backup
+      let lastRestoredLine: Line | undefined = undefined;
+      for (const backup of backupLines) {
+        lastRestoredLine = addNewLine(false, lastRestoredLine);
+        lastRestoredLine({
+          content: backup.content,
+          saved_in_ast: backup.saved_in_ast,
+        });
+      }
+
+      // Ensure we have at least 10 lines
+      while (lines.length < 10) {
+        lastRestoredLine = addNewLine(false, lastRestoredLine);
+      }
+
+      updateLineNumbers();
+      mapLineIdToIndex();
+      lines.forEach((line) => line().setIndentation());
+
+      // Apply syntax highlighting to restored content
+      lines.forEach((line) => {
+        if (line().content.trim()) {
+          const lineDiv = line().div;
+          const blockContainer = lineDiv.querySelector(
+            ".block-container",
+          ) as HTMLDivElement;
+          if (blockContainer) {
+            applySyntaxHighlighting(blockContainer);
+          }
+        }
+      });
+
+      alert(
+        "An error occurred while uploading the file. The editor has been restored to its previous state.",
+      );
+    }
+  }
+  function getEditorContent(): string[] {
+    return lines
+      .map((line) => line().content)
+      .filter((content) => content.trim() !== "");
+  }
+
   /* Initialization */
   let last_line = undefined;
   for (let i = 0; i < Math.max(10, initial_lines.length); i++) {
@@ -260,6 +505,9 @@ function createEditor() {
   ast.inner = ast_r.result.value;
   console.log(ast);
 
+  // Set the file handlers in the menu bar
+  menuBar.setFileHandlers(handleFileUpload, getEditorContent);
+
   // Seems like we need delay after page is loaded before focusing.
   requestAnimationFrame(() => {
     lines[0]({ focus: true });
@@ -281,8 +529,8 @@ function createEditor() {
       globalStates.lineIdToIndex.set(line().line_id, idx);
     });
   }
-  /* Event listeners */
 
+  /* Event listeners */
   runBtn.addEventListener("click", (e) => {
     e.preventDefault();
     if (!globalStates.isRunning && ast.inner) {
