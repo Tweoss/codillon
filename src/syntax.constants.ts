@@ -161,6 +161,7 @@ export const i32Instructions = ["i32.const"] as const;
 export const i64Instructions = ["i64.const"] as const;
 export const f32Instructions = ["f32.const"] as const;
 export const f64Instructions = ["f64.const"] as const;
+export const localInstruction = ["local"] as const;
 
 export const instructions = [
   ...noArgInstructions,
@@ -176,6 +177,7 @@ export const instructions = [
   ...f32Instructions,
   ...f64Instructions,
   ...labelControlFlowInstructions,
+  ...localInstruction,
 ] as const;
 
 export type InstructionName = (typeof instructions)[number];
