@@ -62,7 +62,6 @@ template.innerHTML = `
     }
     .executing {
       background-color: #fff3cd;
-      border: 1px solid #ffeeba;
     }
   </style>
   <div id="editor-container">
@@ -608,10 +607,19 @@ function createEditor() {
       }
       let i = 0;
       if (currentExecution) {
-        updateRunningState(true);
+        currentExecution?.setAfterStepCallback((exec, instr) => {
+          if (
+            instr.name === "br_if" &&
+            "label" in instr &&
+            instr.label === "$circle"
+          ) {
+            plotPointsAtEnd();
+          }
+        });
         const interval = setInterval(() => {
           const hasMore = currentExecution!.step();
-          if (currentExecution && !hasMore && i < 1000) {
+          updateRunningState(true);
+          if (currentExecution && !hasMore && i < 10000) {
             clearInterval(interval);
           }
           i++;

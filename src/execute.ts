@@ -76,6 +76,16 @@ export class Execution {
     }
   }
 
+  private afterStepCallback?: (
+    exec: Execution,
+    instruction: AllInstruction,
+  ) => void;
+  setAfterStepCallback(
+    cb: (exec: Execution, instruction: AllInstruction) => void,
+  ) {
+    this.afterStepCallback = cb;
+  }
+
   private static registerLocalOperations() {
     localIndexInstructions.forEach((instr) => {
       this.instructionHandlers.set(
@@ -514,9 +524,6 @@ export class Execution {
   }
 
   step(): boolean {
-    if (this.error) {
-      console.log("Big Error", this.error);
-    }
     if (
       this.currentInstructionIndex > this.currentFunction.body.length ||
       this.error
@@ -560,6 +567,9 @@ export class Execution {
 
     this.executedBranch = false;
     this.executeInstruction(instruction);
+    if (this.afterStepCallback) {
+      this.afterStepCallback(this, instruction);
+    }
     if (!this.executedBranch) this.currentIndex++;
     this.updateStackVisualization();
     return true;
