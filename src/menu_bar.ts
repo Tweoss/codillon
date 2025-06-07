@@ -32,25 +32,26 @@ template.innerHTML = `
       position: absolute;
       right: 20px;
       top: 100px;
-      width: 200px;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      padding: 10px;
-      font-family: monospace;
+      width: 240px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px 12px 12px 12px;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
       z-index: 1;
       max-height: 600px;
-      overflow: scroll;
+      overflow: auto;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.04);
     }
     #stack-visualization.visible {
       display: block;
     }
-    .stack-item {
-      padding: 5px;
-      border-bottom: 1px solid #eee;
-    }
-    .stack-item:last-child {
-      border-bottom: none;
+    #stack-visualization h3 {
+      margin: 0 0 12px 0;
+      font-size: 1.1em;
+      color: #444;
+      letter-spacing: 0.03em;
+      font-weight: 600;
     }
     .file-buttons {
       display: flex;
@@ -108,6 +109,26 @@ template.innerHTML = `
     #stop-btn::before {
       content: "⏹️ ";
     }
+  .stack-item {
+    background: #f7f9fa;
+    margin-bottom: 8px;
+    padding: 10px 2px;
+    border-radius: 6px;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    font-size: 1em;
+    color: #222;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stack-item:last-child {
+    margin-bottom: 0;
+  }
+  .stack-item:hover {
+    background: #eaf3fb;
+  }
   </style>
   <div id="menu-bar" class="container">
     <div class="left-buttons">

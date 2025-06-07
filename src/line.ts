@@ -36,6 +36,9 @@ template.innerHTML = `<style>
   .number {
     color:rgb(230, 51, 51);
   }
+  .datatype {
+    color: rgb(0, 158, 3);
+  }
   .label {
     color: #6f42c1;
   }

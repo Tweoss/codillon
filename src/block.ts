@@ -12,6 +12,8 @@ import {
   i64Instructions,
   f32Instructions,
   f64Instructions,
+  dataTypes,
+  DataType,
 } from "./syntax.constants.js";
 import {
   validateI32,
@@ -74,6 +76,8 @@ export function setAsText(block: HTMLDivElement) {
   block.setAttribute("contentEditable", "plaintext-only");
 }
 
+const dataTypeSet = new Set(dataTypes);
+
 export function applySyntaxHighlighting(element: HTMLElement) {
   const text = element.textContent || "";
   const words = text.split(/(\s+)/); // Split on whitespace and keep the spaces
@@ -99,7 +103,9 @@ export function applySyntaxHighlighting(element: HTMLElement) {
 
       // Only apply styling to non-whitespace words
       if (!/^\s+$/.test(word)) {
-        if (index === 0) {
+        if (dataTypeSet.has(word as DataType)) {
+          span.className = "datatype";
+        } else if (index === 0) {
           // First word or word after whitespace is the instruction
           if (instructions.includes(word as any)) {
             span.className = "instruction";

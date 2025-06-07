@@ -10,13 +10,20 @@ template.innerHTML = `
       align-items: center;
       margin-top: 16px;
       margin-bottom: 16px;
+      background: #f8fafc;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1.5px 4px rgba(0,0,0,0.03);
+      padding: 18px 0;
     }
     #plot-canvas {
-      border: 1px solid var(--border-color, #ccc);
-      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: linear-gradient(135deg, #fafdff 0%, #e9f1fb 100%);
       width: 400px;
       height: 400px;
       display: block;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: box-shadow 0.2s;
     }
   </style>
   <div id="plot-canvas-container">
