@@ -12,6 +12,10 @@ import {
   f32Instructions,
   f64Instructions,
   InstructionName,
+  DataType,
+  controlStartTypes,
+  ControlStartTypes,
+  controlEndTypes,
 } from "./syntax.constants.js";
 import { LineID, globalStates } from "./global_variables.js";
 
@@ -42,6 +46,8 @@ export class AST {
   }
   // TODO: removing instruction
   update_line([content, id]: [string, LineID], save: boolean): boolean {
+    if ((controlStartTypes as Readonly<Array<string>>).includes(content))
+      return true;
     for (const f of this.functions) {
       if (f.span[0] == id) return content == "(func";
       if (f.span[1] == id) return content == ")";
@@ -53,10 +59,38 @@ export class AST {
         const instruction = parseInstructionWithArgs([content, id]);
         if (instruction.result.type == "error") return false;
         if (save) f.body[i] = instruction.result.value;
+        if (
+          (controlStartTypes as Readonly<Array<string>>).includes(prev.name)
+        ) {
+          prev.name = content.split(" ")[0] as ControlStartTypes;
+        }
         return true;
       }
     }
     return false;
+  }
+  place_control_flow(
+    cur_function: Function,
+    startInstruction: ControlFlowInstruction,
+    endInstruction: Instruction,
+  ) {
+    const containingBlock = this.get_containing_block(
+      cur_function.body,
+      startInstruction.line,
+    );
+    const targetBody = containingBlock
+      ? containingBlock.body
+      : cur_function.body;
+    targetBody.push(startInstruction);
+    targetBody.push(endInstruction);
+    const nameParts = startInstruction.name.split(" ");
+    if (nameParts.length > 1) {
+      const labelResult = parseLabel(nameParts[1], startInstruction.line);
+      if (labelResult.result.type === "ok") {
+        startInstruction.label = labelResult.result.value;
+      }
+    }
+    return true;
   }
   place_function(
     location: { after: LineID } | "start",
@@ -85,22 +119,33 @@ export class AST {
   ): boolean {
     if (location == "start") return false;
     // TODO: make these lazily evaluated? maybe
+    if ((controlStartTypes as Readonly<Array<string>>).includes(line[0]))
+      return true;
     const instruction = parseInstructionWithArgs(line);
+    if (instruction.result.type === "error") return false;
 
     // TODO: don't linear search over whole document :D
     const ref = location.after;
     for (const f of this.functions) {
-      if (ref == f.span[0] && instruction.result.type == "ok") {
+      if (ref == f.span[0]) {
         if (save) f.body.unshift(instruction.result.value);
         return true;
       }
       // TODO: params, results, locals
-      for (const [i, v] of f.body.entries()) {
+      let block = this.get_containing_block(f.body, line[1]);
+      let targetBody = block ? block.body : f.body;
+      if (block && block.line === ref) {
+        if (save) targetBody.unshift(instruction.result.value);
+        return true;
+      }
+      for (const [i, v] of targetBody.entries()) {
         if (v.line == ref && instruction.result.type == "ok") {
-          if (save) f.body.splice(i + 1, 0, instruction.result.value);
+          if (save) targetBody.splice(i + 1, 0, instruction.result.value);
           return true;
         }
       }
+      if (save) targetBody.push(instruction.result.value);
+      return true;
     }
     return false;
   }
@@ -115,7 +160,26 @@ export class AST {
   //   }
   //   return null;
   // }
-  get_function(location: LineID): Function | null {
+  get_containing_block(
+    body: AllInstruction[],
+    location: LineID,
+  ): ControlFlowInstruction | null {
+    const index = globalStates.lineIdToIndex.get(location) as number;
+    for (const instr of body) {
+      if ("metadata" in instr && instr.metadata?.endPos) {
+        const startLine = globalStates.lineIdToIndex.get(instr.line) as number;
+        const endLine = globalStates.lineIdToIndex.get(
+          instr.metadata.endPos!,
+        ) as number;
+        if (instr.metadata.endPos && index > startLine && index < endLine) {
+          const nestedBlock = this.get_containing_block(instr.body, location);
+          return nestedBlock || instr;
+        }
+      }
+    }
+    return null;
+  }
+  get_containing_function(location: LineID): Function | null {
     const index = globalStates.lineIdToIndex.get(location) as number;
     for (const f of this.functions) {
       const startLine = globalStates.lineIdToIndex.get(f.span[0]) as number;
@@ -128,24 +192,26 @@ export class AST {
   }
   get_autocomplete(location: LineID, prefix: string) {
     const instructionList: readonly string[] =
-      !prefix || this.get_function(location) ? instructions : ["(func"];
+      !prefix || this.get_containing_function(location)
+        ? instructions
+        : ["(func"];
     return instructionList.filter((instruction) =>
       prefix.startsWith(instruction.slice(0, prefix.length)),
     );
   }
 }
 export class Function {
-  argument_types: { type: Type; label?: string }[];
-  return_type: Type | null;
+  argument_types: { type: DataType; label?: string }[];
+  return_type: DataType | null;
   locals: string[];
-  body: (Instruction | InstructionWithLabel | InstructionWithImmediate)[];
+  body: AllInstruction[];
   span: [LineID, LineID];
 
   constructor(
-    argument_types: { type: Type; label?: string | undefined }[],
-    return_type: Type | null,
+    argument_types: { type: DataType; label?: string | undefined }[],
+    return_type: DataType | null,
     locals: string[],
-    body: (Instruction | InstructionWithImmediate | InstructionWithLabel)[],
+    body: AllInstruction[],
     span: [number, number],
   ) {
     this.argument_types = argument_types;
@@ -160,7 +226,7 @@ export class Function {
   ): ParseResult<[Function, typeof lines]> {
     if (lines[0][0] != "(func")
       return ParseResult.err("expected opening (func", lines[0][1]);
-    const start = lines.splice(0, 1)[0];
+    const start = lines.shift()!;
     const end_index = lines.findIndex(([s, _]) => s == ")");
     if (end_index == -1)
       return ParseResult.err(
@@ -168,35 +234,40 @@ export class Function {
         lines.at(-1)![1],
       );
     // TODO: parameters, result
+    const functionLines = lines.slice(0, end_index);
+    const remainder = lines.slice(end_index + 1);
+    const end = lines[end_index];
 
-    const remainder = lines.splice(end_index + 1);
-    const end = lines.splice(end_index, 1)[0];
-
-    // Only return first error.
-    const parsed_lines = lines
-      .map(parseInstructionWithArgs)
-      .reduce(
-        (lines, next_result) =>
-          lines.bind((l) => next_result.map((i) => l.concat([i]))),
-        ParseResult.ok([] as typeof Function.prototype.body),
-      );
-
-    if (parsed_lines.result.type == "error")
-      return ParseResult.err(
-        parsed_lines.result.error,
-        parsed_lines.result.line,
-      );
+    let body: AllInstruction[];
+    try {
+      [body] = parseBlock([...functionLines]);
+    } catch (e: any) {
+      return ParseResult.err(e.message, start[1]);
+    }
 
     return ParseResult.ok([
-      new Function([], null, [], parsed_lines.result.value, [start[1], end[1]]),
+      new Function([], null, [], body, [start[1], end[1]]),
       remainder,
     ]);
   }
 }
-export type Type = "i32" | "i64" | "f32" | "f64";
+
 export type Instruction = { name: InstructionName; line: LineID };
 export type InstructionWithLabel = Instruction & { label: string | number };
 export type InstructionWithImmediate = Instruction & { argument: number };
+export type AllInstruction =
+  | Instruction
+  | InstructionWithImmediate
+  | InstructionWithLabel
+  | ControlFlowInstruction;
+export type ControlFlowInstruction = Instruction & {
+  label?: string | number;
+  metadata: {
+    endPos?: LineID;
+    elsePos?: LineID;
+  };
+  body: AllInstruction[];
+};
 type ResultType<T> =
   | { type: "error"; error: string; line: LineID }
   | { type: "ok"; value: T };
@@ -363,10 +434,57 @@ function parseLabel(text: string, line: LineID): ParseResult<number | string> {
     .or(parseUI32(text, line));
 }
 
+function parseBlock(
+  lines: [string, LineID][],
+): [AllInstruction[], [string, LineID][]] {
+  const body: AllInstruction[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const [text, line] = lines[i];
+    const name = text.split(" ")[0];
+    if ((controlEndTypes as Readonly<Array<string>>).includes(name)) {
+      break;
+    }
+    if (text.trim() === "") {
+      i++;
+      continue;
+    }
+    if ((controlStartTypes as Readonly<Array<string>>).includes(name)) {
+      const startLine = lines[i];
+      const [nestedBody, rest] = parseBlock(lines.slice(i + 1));
+      if (
+        rest.length === 0 ||
+        !(controlEndTypes as Readonly<Array<string>>).includes(rest[0][0])
+      ) {
+        throw new Error(
+          `Missing end for control flow starting at line ${startLine[1]}`,
+        );
+      }
+      const endLine = rest[0];
+      const controlInstr: ControlFlowInstruction = {
+        name: startLine[0] as ControlStartTypes,
+        line: startLine[1],
+        metadata: { endPos: endLine[1] },
+        body: nestedBody,
+      };
+      body.push(controlInstr);
+      i += nestedBody.length + 2;
+      continue;
+    }
+    const instrResult = parseInstructionWithArgs([text, line]);
+    if (instrResult.result.type === "ok") {
+      body.push(instrResult.result.value);
+    }
+    i++;
+  }
+  return [body, lines.slice(i)];
+}
+
 // TODO: handle vector label index
-function parseInstructionWithArgs([text, line]: [string, LineID]): ParseResult<
-  Instruction | InstructionWithImmediate | InstructionWithLabel
-> {
+function parseInstructionWithArgs([text, line]: [
+  string,
+  LineID,
+]): ParseResult<AllInstruction> {
   let vals = text.split(" ");
   const name = vals.at(0);
   if (!name) return ParseResult.err("missing instruction", line);
