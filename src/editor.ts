@@ -17,6 +17,15 @@ import {
   controlStartTypes,
   ControlStartTypes,
   InstructionName,
+  i32Instructions,
+  i64Instructions,
+  f32Instructions,
+  f64Instructions,
+  labelIndexInstructions,
+  funcIndexInstructions,
+  typeIndexInstructions,
+  localIndexInstructions,
+  globalIndexInstructions,
 } from "./syntax.constants.js";
 
 const DEFAULTS = { margin_width: 40 };
@@ -236,7 +245,6 @@ function createEditor() {
     return line;
   }
 
-  /* File operation handlers */
   function handleFileUpload(content: string) {
     if (globalStates.isRunning) {
       alert("Cannot upload file while running");
@@ -258,6 +266,61 @@ function createEditor() {
 
       if (parsedLines.length === 0) {
         alert("The uploaded file appears to be empty");
+        return;
+      }
+
+      // Validate each line before proceeding
+      const validationErrors: string[] = [];
+      for (let i = 0; i < parsedLines.length; i++) {
+        const line = parsedLines[i].trim();
+        if (line === "" || line === "(func" || line === ")" || line === "end") {
+          continue; // These are valid as-is
+        }
+
+        // Check if it's a control flow instruction
+        if ((controlStartTypes as readonly string[]).includes(line)) {
+          continue;
+        }
+
+        // For other instructions, validate they have proper arguments
+        const parts = line.split(" ");
+        const instruction = parts[0];
+
+        // Check if this instruction requires arguments
+        if (
+          [
+            ...i32Instructions,
+            ...i64Instructions,
+            ...f32Instructions,
+            ...f64Instructions,
+          ].includes(instruction as any)
+        ) {
+          if (parts.length < 2) {
+            validationErrors.push(
+              `Line ${i + 1}: ${instruction} requires an argument`,
+            );
+          }
+        } else if (
+          [
+            ...labelIndexInstructions,
+            ...funcIndexInstructions,
+            ...typeIndexInstructions,
+            ...localIndexInstructions,
+            ...globalIndexInstructions,
+          ].includes(instruction as any)
+        ) {
+          if (parts.length < 2) {
+            validationErrors.push(
+              `Line ${i + 1}: ${instruction} requires an argument`,
+            );
+          }
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        alert(
+          `File validation errors:\n\n${validationErrors.join("\n")}\n\nThe file was not loaded.`,
+        );
         return;
       }
 
@@ -410,7 +473,6 @@ function createEditor() {
       );
     }
   }
-
   function getEditorContent(): string[] {
     return lines
       .map((line) => line().content)
