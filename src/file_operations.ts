@@ -35,6 +35,29 @@ export function createFileInput(
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
+    // Validate file extension
+    const validExtensions = [".wat", ".wast"];
+    const fileExtension = file.name
+      .toLowerCase()
+      .substring(file.name.lastIndexOf("."));
+    if (!validExtensions.includes(fileExtension)) {
+      alert(
+        `Invalid file type. Please select a .wat or .wast file.\nSelected file: ${file.name}`,
+      );
+      input.value = "";
+      return;
+    }
+
+    // Validate file size (limit to 1MB)
+    const maxSize = 1024 * 1024; // 1MB
+    if (file.size > maxSize) {
+      alert(
+        `File is too large. Maximum file size is 1MB.\nSelected file size: ${(file.size / 1024).toFixed(2)}KB`,
+      );
+      input.value = "";
+      return;
+    }
+
     try {
       const content = await file.text();
       onFileLoad(content, file.name);
@@ -51,6 +74,28 @@ export function createFileInput(
 }
 
 export function parseWatContent(content: string): string[] {
+  // Basic validation
+  if (!content || typeof content !== "string") {
+    throw new Error("Invalid file content");
+  }
+
+  // Check for common file format issues
+  const trimmedContent = content.trim();
+  if (trimmedContent.length === 0) {
+    return [];
+  }
+
+  // Check if it looks like a WAT file (should have at least one function)
+  if (
+    !trimmedContent.includes("(func") &&
+    !trimmedContent.includes("(module")
+  ) {
+    console.warn("File does not appear to contain WebAssembly text format");
+  }
+
   // Split by newlines and filter out empty lines
-  return content.split("\n").filter((line) => line.trim() !== "");
+  return content
+    .split("\n")
+    .map((line) => line.trimEnd()) // Remove trailing whitespace but preserve indentation
+    .filter((line) => line.trim() !== "");
 }

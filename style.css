@@ -1,3 +1,40 @@
+:root {
+  --font-family: "Inter", sans-serif;
+  --background-primary: #fff;
+  --border-color: #ccc;
+  --primary-color: #333;
+}
+body {
+  margin: 0;
+}
+
+.button {
+  padding: 6px 12px;
+  background: #f9f9f9;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+.press-effect {
+  outline: 0;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.press-effect:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.line.indent {
+  padding-left: 20px;
+  border-left: 1px solid var(--border-color);
+}
+
+/* Add to style.css */
+
 /* File operation buttons styling */
 .file-buttons button {
   background: #e3f2fd;
@@ -14,65 +51,13 @@
   background: #90caf9;
 }
 
-/* Execution control buttons styling */
-.left-buttons button {
-  background: #e3f2fd;
-  border-color: #1976d2;
-  color: #1976d2;
-  font-weight: 500;
-}
-
-.left-buttons button:hover {
-  background: #bbdefb;
-}
-
-.left-buttons button:active {
-  background: #90caf9;
-}
-
-/* Stop button special styling */
-#stop-btn {
-  background: #ffebee !important;
-  border-color: #d32f2f !important;
-  color: #d32f2f !important;
-}
-
-#stop-btn:hover {
-  background: #ffcdd2 !important;
-}
-
-#stop-btn:active {
-  background: #ef9a9a !important;
-}
-
 /* Disabled state for buttons during execution */
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Emojis for all control buttons */
-#run-btn::before {
-  content: "▶️ ";
-}
-
-#step-over-btn::before {
-  content: "⏭️ ";
-}
-
-#step-into-btn::before {
-  content: "⬇️ ";
-}
-
-#step-out-btn::before {
-  content: "⬆️ ";
-}
-
-#stop-btn::before {
-  content: "⏹️ ";
-}
-
-/* Upload/Download icons */
+/* Upload/Download icons (optional - you can add SVG icons) */
 #upload-btn::before {
   content: "⬆️ ";
 }

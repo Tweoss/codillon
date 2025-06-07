@@ -193,70 +193,171 @@ function createEditor() {
       return;
     }
 
-    // Parse the WAT content
-    const parsedLines = parseWatContent(content);
+    // Save current state for rollback
+    const backupLines = lines.map((line) => ({
+      content: line().content,
+      saved_in_ast: line().saved_in_ast,
+      line_id: line().line_id,
+    }));
+    const backupAst = ast.inner;
+    const backupContentEditorHTML = contentEditor.innerHTML;
 
-    // Clear existing content
-    contentEditor.innerHTML = "";
-    lines = [];
+    try {
+      // Parse the WAT content
+      const parsedLines = parseWatContent(content);
 
-    // Reset the AST
-    ast.inner = null;
-
-    // Add lines from the uploaded file
-    let lastLine: Line | undefined = undefined;
-    for (let i = 0; i < Math.max(parsedLines.length, 10); i++) {
-      lastLine = addNewLine(false, lastLine);
-      if (i < parsedLines.length && parsedLines[i]) {
-        lastLine({ content: parsedLines[i], saved_in_ast: false });
+      if (parsedLines.length === 0) {
+        alert("The uploaded file appears to be empty");
+        return;
       }
-    }
 
-    // Try to parse the AST
-    const astLines: [string, LineID][] = [];
-    for (let i = 0; i < parsedLines.length; i++) {
-      if (lines[i] && parsedLines[i]) {
-        astLines.push([parsedLines[i], lines[i]().line_id]);
+      // Clear existing content
+      contentEditor.innerHTML = "";
+      lines = [];
+
+      // Reset the AST
+      ast.inner = null;
+
+      // Add lines from the uploaded file
+      let lastLine: Line | undefined = undefined;
+      for (let i = 0; i < Math.max(parsedLines.length, 10); i++) {
+        lastLine = addNewLine(false, lastLine);
+        if (i < parsedLines.length && parsedLines[i]) {
+          lastLine({ content: parsedLines[i], saved_in_ast: false });
+        }
       }
-    }
 
-    const astResult = AST.parse(astLines);
-    if (astResult.result.type === "ok") {
-      ast.inner = astResult.result.value;
-      // Mark lines as saved in AST
+      // Try to parse the AST
+      const astLines: [string, LineID][] = [];
       for (let i = 0; i < parsedLines.length; i++) {
-        if (lines[i]) {
-          lines[i]({ saved_in_ast: true });
+        if (lines[i] && parsedLines[i]) {
+          astLines.push([parsedLines[i], lines[i]().line_id]);
         }
       }
-    } else {
-      console.error("Error parsing uploaded file:", astResult.result.error);
-      alert("Error parsing file: " + astResult.result.error);
-    }
 
-    // Update UI
-    updateLineNumbers();
-    mapLineIdToIndex();
-    lines.forEach((line) => line().setIndentation());
-
-    // Apply syntax highlighting by triggering the highlighting on each block
-    lines.forEach((line) => {
-      if (line().content.trim()) {
-        const lineDiv = line().div;
-        const blockContainer = lineDiv.querySelector(
-          ".block-container",
-        ) as HTMLDivElement;
-        if (blockContainer) {
-          applySyntaxHighlighting(blockContainer);
+      const astResult = AST.parse(astLines);
+      if (astResult.result.type === "ok") {
+        ast.inner = astResult.result.value;
+        // Mark lines as saved in AST
+        for (let i = 0; i < parsedLines.length; i++) {
+          if (lines[i]) {
+            lines[i]({ saved_in_ast: true });
+          }
         }
-      }
-    });
 
-    // Focus first line
-    if (lines[0]) {
-      requestAnimationFrame(() => {
-        lines[0]({ focus: true });
+        // Update UI
+        updateLineNumbers();
+        mapLineIdToIndex();
+        lines.forEach((line) => line().setIndentation());
+
+        // Apply syntax highlighting by triggering the highlighting on each block
+        lines.forEach((line) => {
+          if (line().content.trim()) {
+            const lineDiv = line().div;
+            const blockContainer = lineDiv.querySelector(
+              ".block-container",
+            ) as HTMLDivElement;
+            if (blockContainer) {
+              applySyntaxHighlighting(blockContainer);
+            }
+          }
+        });
+
+        // Focus first line
+        if (lines[0]) {
+          requestAnimationFrame(() => {
+            lines[0]({ focus: true });
+          });
+        }
+      } else {
+        // AST parsing failed - rollback
+        console.error("Error parsing uploaded file:", astResult.result.error);
+
+        // Restore previous state
+        contentEditor.innerHTML = "";
+        lines = [];
+        ast.inner = backupAst;
+
+        // Recreate lines from backup
+        let lastRestoredLine: Line | undefined = undefined;
+        for (const backup of backupLines) {
+          lastRestoredLine = addNewLine(false, lastRestoredLine);
+          lastRestoredLine({
+            content: backup.content,
+            saved_in_ast: backup.saved_in_ast,
+          });
+        }
+
+        // Ensure we have at least 10 lines
+        while (lines.length < 10) {
+          lastRestoredLine = addNewLine(false, lastRestoredLine);
+        }
+
+        updateLineNumbers();
+        mapLineIdToIndex();
+        lines.forEach((line) => line().setIndentation());
+
+        // Apply syntax highlighting to restored content
+        lines.forEach((line) => {
+          if (line().content.trim()) {
+            const lineDiv = line().div;
+            const blockContainer = lineDiv.querySelector(
+              ".block-container",
+            ) as HTMLDivElement;
+            if (blockContainer) {
+              applySyntaxHighlighting(blockContainer);
+            }
+          }
+        });
+
+        alert(
+          `Error parsing file: ${astResult.result.error}\n\nThe editor has been restored to its previous state.`,
+        );
+      }
+    } catch (error) {
+      // Something went wrong during the upload process - rollback
+      console.error("Error during file upload:", error);
+
+      // Restore previous state
+      contentEditor.innerHTML = "";
+      lines = [];
+      ast.inner = backupAst;
+
+      // Recreate lines from backup
+      let lastRestoredLine: Line | undefined = undefined;
+      for (const backup of backupLines) {
+        lastRestoredLine = addNewLine(false, lastRestoredLine);
+        lastRestoredLine({
+          content: backup.content,
+          saved_in_ast: backup.saved_in_ast,
+        });
+      }
+
+      // Ensure we have at least 10 lines
+      while (lines.length < 10) {
+        lastRestoredLine = addNewLine(false, lastRestoredLine);
+      }
+
+      updateLineNumbers();
+      mapLineIdToIndex();
+      lines.forEach((line) => line().setIndentation());
+
+      // Apply syntax highlighting to restored content
+      lines.forEach((line) => {
+        if (line().content.trim()) {
+          const lineDiv = line().div;
+          const blockContainer = lineDiv.querySelector(
+            ".block-container",
+          ) as HTMLDivElement;
+          if (blockContainer) {
+            applySyntaxHighlighting(blockContainer);
+          }
+        }
       });
+
+      alert(
+        "An error occurred while uploading the file. The editor has been restored to its previous state.",
+      );
     }
   }
 
