@@ -5,6 +5,8 @@ import MenuBar from "./menu_bar.js";
 import BlockBank from "./block_bank/block_bank.js";
 import { Execution, createExecution } from "./execute.js";
 import { LineID, globalStates } from "./global_variables.js";
+import { parseWatContent } from "./file_operations.js";
+import { applySyntaxHighlighting } from "./block.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -184,6 +186,86 @@ function createEditor() {
     return line;
   }
 
+  /* File operation handlers */
+  function handleFileUpload(content: string) {
+    if (globalStates.isRunning) {
+      alert("Cannot upload file while running");
+      return;
+    }
+
+    // Parse the WAT content
+    const parsedLines = parseWatContent(content);
+
+    // Clear existing content
+    contentEditor.innerHTML = "";
+    lines = [];
+
+    // Reset the AST
+    ast.inner = null;
+
+    // Add lines from the uploaded file
+    let lastLine: Line | undefined = undefined;
+    for (let i = 0; i < Math.max(parsedLines.length, 10); i++) {
+      lastLine = addNewLine(false, lastLine);
+      if (i < parsedLines.length && parsedLines[i]) {
+        lastLine({ content: parsedLines[i], saved_in_ast: false });
+      }
+    }
+
+    // Try to parse the AST
+    const astLines: [string, LineID][] = [];
+    for (let i = 0; i < parsedLines.length; i++) {
+      if (lines[i] && parsedLines[i]) {
+        astLines.push([parsedLines[i], lines[i]().line_id]);
+      }
+    }
+
+    const astResult = AST.parse(astLines);
+    if (astResult.result.type === "ok") {
+      ast.inner = astResult.result.value;
+      // Mark lines as saved in AST
+      for (let i = 0; i < parsedLines.length; i++) {
+        if (lines[i]) {
+          lines[i]({ saved_in_ast: true });
+        }
+      }
+    } else {
+      console.error("Error parsing uploaded file:", astResult.result.error);
+      alert("Error parsing file: " + astResult.result.error);
+    }
+
+    // Update UI
+    updateLineNumbers();
+    mapLineIdToIndex();
+    lines.forEach((line) => line().setIndentation());
+
+    // Apply syntax highlighting by triggering the highlighting on each block
+    lines.forEach((line) => {
+      if (line().content.trim()) {
+        const lineDiv = line().div;
+        const blockContainer = lineDiv.querySelector(
+          ".block-container",
+        ) as HTMLDivElement;
+        if (blockContainer) {
+          applySyntaxHighlighting(blockContainer);
+        }
+      }
+    });
+
+    // Focus first line
+    if (lines[0]) {
+      requestAnimationFrame(() => {
+        lines[0]({ focus: true });
+      });
+    }
+  }
+
+  function getEditorContent(): string[] {
+    return lines
+      .map((line) => line().content)
+      .filter((content) => content.trim() !== "");
+  }
+
   /* Initialization */
   let last_line = undefined;
   for (let i = 0; i < Math.max(10, initial_lines.length); i++) {
@@ -210,6 +292,9 @@ function createEditor() {
   ast.inner = ast_r.result.value;
   console.log(ast);
 
+  // Set the file handlers in the menu bar
+  menuBar.setFileHandlers(handleFileUpload, getEditorContent);
+
   // Seems like we need delay after page is loaded before focusing.
   requestAnimationFrame(() => {
     lines[0]({ focus: true });
@@ -230,8 +315,8 @@ function createEditor() {
       globalStates.lineIdToIndex.set(line().line_id, idx),
     );
   }
-  /* Event listeners */
 
+  /* Event listeners */
   runBtn.addEventListener("click", (e) => {
     e.preventDefault();
     if (!globalStates.isRunning && ast.inner) {
