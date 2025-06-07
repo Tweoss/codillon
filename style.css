@@ -7,7 +7,6 @@
 body {
   margin: 0;
 }
-
 .button {
   padding: 6px 12px;
   background: #f9f9f9;
@@ -32,9 +31,7 @@ body {
   padding-left: 20px;
   border-left: 1px solid var(--border-color);
 }
-
 /* Add to style.css */
-
 /* File operation buttons styling */
 .file-buttons button {
   background: #e3f2fd;
@@ -42,26 +39,62 @@ body {
   color: #1976d2;
   font-weight: 500;
 }
-
 .file-buttons button:hover {
   background: #bbdefb;
 }
-
 .file-buttons button:active {
   background: #90caf9;
 }
-
+/* Execution control buttons styling */
+.left-buttons button {
+  background: #e3f2fd;
+  border-color: #1976d2;
+  color: #1976d2;
+  font-weight: 500;
+}
+.left-buttons button:hover {
+  background: #bbdefb;
+}
+.left-buttons button:active {
+  background: #90caf9;
+}
+/* Stop button special styling */
+#stop-btn {
+  background: #ffebee !important;
+  border-color: #d32f2f !important;
+  color: #d32f2f !important;
+}
+#stop-btn:hover {
+  background: #ffcdd2 !important;
+}
+#stop-btn:active {
+  background: #ef9a9a !important;
+}
 /* Disabled state for buttons during execution */
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-/* Upload/Download icons (optional - you can add SVG icons) */
+/* Emojis for all control buttons */
+#run-btn::before {
+  content: "▶️ ";
+}
+#step-over-btn::before {
+  content: "⏭️ ";
+}
+#step-into-btn::before {
+  content: "⬇️ ";
+}
+#step-out-btn::before {
+  content: "⬆️ ";
+}
+#stop-btn::before {
+  content: "⏹️ ";
+}
+/* Upload/Download icons */
 #upload-btn::before {
   content: "⬆️ ";
 }
-
 #download-btn::before {
   content: "⬇️ ";
 }

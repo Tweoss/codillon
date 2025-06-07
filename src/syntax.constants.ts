@@ -359,6 +359,14 @@ export const numericInstructions = {
     "f64.reinterpret_i64",
   ],
 };
-export const dataTypes = ["i32", "i64", "f32", "f64"] as const;
-export type DataType = (typeof dataTypes)[number];
+export const intTypes = ["i32", "i64"] as const;
+export const floatTypes = ["f32", "f64"] as const;
+export type IntType = (typeof intTypes)[number];
+export type FloatType = (typeof floatTypes)[number];
+export const dataTypes = [...intTypes, ...floatTypes] as const;
+export type DataType = IntType | FloatType;
+export const controlStartTypes = ["if", "block", "loop"] as const;
+export type ControlStartTypes = (typeof controlStartTypes)[number];
+export const controlEndTypes = ["end", ")"] as const;
+export type ControlEndTypes = (typeof controlEndTypes)[number];
 export const MarginWidth = 20;

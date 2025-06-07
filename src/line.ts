@@ -1,11 +1,17 @@
-import { AST, Location } from "./ast.js";
+import { AST, Location, Function } from "./ast.js";
 import createAutocomplete, { Autocomplete } from "./autocomplete.js";
 import Block, { applySyntaxHighlighting, setCursor } from "./block.js";
 import { LineID, globalStates } from "./global_variables.js";
+import {
+  controlStartTypes,
+  controlEndTypes,
+  MarginWidth,
+} from "./syntax.constants.js";
 
 const template = document.createElement("template");
 template.innerHTML = `<style>
   .line {
+    position: relative;
     display: flex;
     gap: 4px;
     box-sizing: border-box;
@@ -16,6 +22,7 @@ template.innerHTML = `<style>
     background-size: 12px 1px;
     background-repeat: repeat-x;
     background-clip: content-box;
+    box-shadow: none;
   }
   .error {
     text-decoration: underline;
@@ -32,7 +39,14 @@ template.innerHTML = `<style>
   .label {
     color: #6f42c1;
   }
-</style><div class="line"></div>`;
+  .indent {
+    height: 24px;
+    width: 1px;
+    position: absolute;
+    background-color: var(--border-color);
+    left: 0px;
+  }
+</style><div class="line"><div class="indent"></div></div>`;
 
 function clone() {
   return document.importNode(template.content, true);
@@ -43,6 +57,7 @@ function init({
   line_id,
   addNewLine,
   addFunction,
+  addControlFlow,
   deleteLine,
   getPrevLineInAST,
 }: {
@@ -50,21 +65,24 @@ function init({
   line_id: LineID;
   addNewLine: (focus: boolean, ref: Line) => void;
   addFunction: (ref: Line | null, currentLine: Line) => boolean;
+  addControlFlow: (ref: Line | null, currentLine: Line) => boolean;
   deleteLine: (ref: Line) => void;
   getPrevLineInAST: (ref: Line) => Line | null;
 }) {
   /* DOM variables */
+  let indentationLevel = 0;
   let frag = clone();
   const lineElement = frag.querySelector(".line") as HTMLDivElement;
   const block = Block()();
   lineElement.appendChild(block.frag);
   let autocomplete: Autocomplete | null = null;
+  let indentBar = lineElement.querySelector(".indent") as HTMLDivElement;
 
   /* State variables */
   let completions = [] as readonly string[];
   let preValidState: string | null = null;
   let saved_in_ast = false;
-  let inFunction: boolean = false;
+  let cur_function: Function | null = null;
 
   /* DOM update functions */
   function addAutocomplete(completions: readonly string[]): void {
@@ -72,7 +90,9 @@ function init({
     removeAutocomplete();
     autocomplete = createAutocomplete({
       onSelect: (s) => {
-        block.setContent(s);
+        if (!block.getContent().includes(s)) {
+          block.setContent(s);
+        }
         lineElement.classList.remove("error");
         applySyntaxHighlighting(block.div);
         setCursor(block.div, block.getContent().length);
@@ -90,11 +110,12 @@ function init({
   }
 
   /* State update functions */
-  function setIndentation() {
-    inFunction = Boolean(ast.inner?.get_function(line_id));
-    inFunction
-      ? lineElement.classList.add("indent")
-      : lineElement.classList.remove("indent");
+  function setIndentation(level?: number) {
+    cur_function = ast.inner?.get_containing_function(line_id);
+    indentationLevel = level ? level : cur_function ? 1 : 0;
+    indentBar.style.display = indentationLevel ? "block" : "none";
+    indentBar.style.left = `${(indentationLevel - 1) * MarginWidth}px`;
+    lineElement.style.paddingLeft = `${indentationLevel * MarginWidth}px`;
   }
   /* State logic */
   function completionError() {
@@ -124,7 +145,9 @@ function init({
       e.preventDefault();
       completions = ast.inner.get_autocomplete(line_id, block.getContent());
       if (block.getContent() && completions.length > 0) {
-        block.setContent(completions[0]);
+        if (!block.getContent().includes(completions[0])) {
+          block.setContent(completions[0]);
+        }
         lineElement.classList.remove("error");
         applySyntaxHighlighting(block.div);
         setCursor(block.div, block.getContent().length);
@@ -177,7 +200,7 @@ function init({
       addNewLine(true, update);
       return;
     }
-    if (!inFunction && value == "(func") {
+    if (!cur_function && value == "(func") {
       preValidState = value;
       if (saved_in_ast) {
         addNewLine(true, update);
@@ -187,6 +210,15 @@ function init({
         saved_in_ast = true;
       }
       return;
+    } else if (
+      (controlStartTypes as Readonly<Array<string>>).includes(
+        value.split(" ")[0],
+      )
+    ) {
+      if (!saved_in_ast && addControlFlow(prev_line, update)) {
+        saved_in_ast = true;
+        return;
+      }
     }
     if (saved_in_ast) {
       if (ast.inner.update_line([value, line_id], true)) {
@@ -220,6 +252,7 @@ function init({
     const prev_line = getPrevLineInAST(line);
     // TODO: handle update
     if (
+      (controlEndTypes as Readonly<Array<string>>).includes(value) ||
       (saved_in_ast && !ast.inner.update_line([value, line_id], true)) ||
       (!saved_in_ast &&
         !ast.inner.place_instruction(
@@ -255,6 +288,7 @@ function init({
   ) {
     if (data.content) {
       block.setContent(data.content);
+      applySyntaxHighlighting(block.div);
       preValidState = data.content;
     }
     if (data.focus && data.focus !== undefined)
@@ -268,6 +302,7 @@ function init({
       line_id,
       content: block.getContent(),
       setIndentation,
+      indentationLevel,
     };
   }
 

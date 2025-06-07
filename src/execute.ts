@@ -6,7 +6,13 @@ import {
   InstructionWithImmediate,
 } from "./ast.js";
 import { Line } from "./line.js";
-import { InstructionName, DataType, dataTypes } from "./syntax.constants.js";
+import {
+  InstructionName,
+  DataType,
+  intTypes,
+  floatTypes,
+  dataTypes,
+} from "./syntax.constants.js";
 
 type StackValue = [DataType, number];
 
@@ -19,20 +25,11 @@ const mask32 = 0xffffffff;
 const mask64 = (1n << 64n) - 1n;
 
 export class Execution {
-  private static readonly intTypes: DataType[] = dataTypes.slice(0, 2);
-  private static readonly floatTypes: DataType[] = dataTypes.slice(2, 4);
   private static readonly instructionHandlers: Map<
     InstructionName,
     (exec: Execution, instruction?: any) => void
   > = new Map();
-  static {
-    this.registerConstants();
-    this.registerArithmeticOperations();
-    this.registerComparisonOperations();
-    this.registerBitwiseOperations();
-    this.registerParametricOperations();
-    this.registerConversionOperations();
-  }
+  private static initialized: boolean = false;
   private stack: StackValue[] = [];
   private currentFunction: Function;
   private currentInstructionIndex: number = 0;
@@ -43,6 +40,15 @@ export class Execution {
   private error: boolean = false;
 
   constructor(func: Function, stackVisualization: HTMLElement, lines_: Line[]) {
+    if (!Execution.initialized) {
+      Execution.registerConstants();
+      Execution.registerArithmeticOperations();
+      Execution.registerComparisonOperations();
+      Execution.registerBitwiseOperations();
+      Execution.registerParametricOperations();
+      Execution.registerConversionOperations();
+      Execution.initialized = true;
+    }
     this.currentFunction = func;
     this.stackVisualization = stackVisualization;
     this.lines = lines_;
@@ -107,9 +113,9 @@ export class Execution {
       nearest: Math.round,
       sqrt: Math.sqrt,
     };
-    this.registerTypedOperations(dataTypes, intOperations, 2);
-    this.registerTypedOperations(this.floatTypes, floatOperations, 2);
-    this.registerTypedOperations(this.floatTypes, floatUnaryOperations, 1);
+    this.registerTypedOperations(intTypes, intOperations, 2);
+    this.registerTypedOperations(floatTypes, floatOperations, 2);
+    this.registerTypedOperations(floatTypes, floatUnaryOperations, 1);
   }
 
   private static registerComparisonOperations() {
@@ -130,7 +136,7 @@ export class Execution {
     const unaryComparisons: Record<string, (a: number) => boolean> = {
       eqz: (a) => a === 0,
     };
-    this.registerTypedOperations(this.intTypes, unaryComparisons, 1, true);
+    this.registerTypedOperations(intTypes, unaryComparisons, 1, true);
   }
 
   private static registerBitwiseOperations() {
@@ -158,8 +164,8 @@ export class Execution {
       popcnt: (a) => (a >>> 0).toString(2).split("1").length - 1,
       eqz: (a) => (a === 0 ? 1 : 0),
     };
-    this.registerTypedOperations(this.intTypes, binaryBitwiseOps, 2);
-    this.registerTypedOperations(this.intTypes, unaryBitwiseOps, 1);
+    this.registerTypedOperations(intTypes, binaryBitwiseOps, 2);
+    this.registerTypedOperations(intTypes, unaryBitwiseOps, 1);
   }
 
   private static registerParametricOperations() {
@@ -400,7 +406,7 @@ export class Execution {
 
   step(): boolean {
     if (
-      this.currentInstructionIndex >= this.currentFunction.body.length ||
+      this.currentInstructionIndex > this.currentFunction.body.length ||
       this.error
     ) {
       if (this.oldLine) {

@@ -38,6 +38,7 @@ template.innerHTML = `
       border-radius: 5px;
       padding: 10px;
       font-family: monospace;
+      z-index: 1;
     }
     #stack-visualization.visible {
       display: block;

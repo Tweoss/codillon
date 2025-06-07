@@ -1,4 +1,10 @@
-import { AST, new_line_id, Location } from "./ast.js";
+import {
+  AST,
+  new_line_id,
+  Location,
+  ControlFlowInstruction,
+  Instruction,
+} from "./ast.js";
 import { get_nodes } from "./lib.js";
 import createLine, { Line } from "./line.js"; // Component for a line
 import MenuBar from "./menu_bar.js";
@@ -7,6 +13,11 @@ import { Execution, createExecution } from "./execute.js";
 import { LineID, globalStates } from "./global_variables.js";
 import { parseWatContent } from "./file_operations.js";
 import { applySyntaxHighlighting } from "./block.js";
+import {
+  controlStartTypes,
+  ControlStartTypes,
+  InstructionName,
+} from "./syntax.constants.js";
 
 const DEFAULTS = { margin_width: 40 };
 
@@ -156,33 +167,72 @@ function createEditor() {
     return true;
   }
 
+  function addControlFlow(ref: Line | null, startLine: Line): boolean {
+    const cur_function = ast.inner?.get_containing_function(
+      startLine().line_id,
+    );
+    if (!cur_function) return false;
+    const space_line = addNewLine(false, startLine);
+    const paren_line = addNewLine(false, space_line);
+    paren_line({ content: "end", saved_in_ast: true });
+    space_line({ focus: true });
+    paren_line().setIndentation(startLine().indentationLevel);
+    const start_instruction: ControlFlowInstruction = {
+      name: startLine().content as ControlStartTypes,
+      line: startLine().line_id,
+      metadata: {
+        endPos: paren_line().line_id,
+      },
+      body: [],
+    };
+    const end_instruction: Instruction = {
+      name: "end" as InstructionName,
+      line: paren_line().line_id,
+    };
+    ast.inner!.place_control_flow(
+      cur_function,
+      start_instruction,
+      end_instruction,
+    );
+    return true;
+  }
+
   function addNewLine(focus: boolean, referenceLine?: Line) {
     const line = createLine({
       wrapper: ast as { inner: AST },
       addFunction,
       addNewLine,
+      addControlFlow,
       line_id: new_line_id(),
       deleteLine: handleBackspaceOnEmptyLine,
       getPrevLineInAST,
     });
     const lineDOM = line({ content: "" }).frag;
+    // Split from start up to and including reference line, then after reference line.
+    // Or, if no reference, just append to end.
+    const index = referenceLine ? getCurrentLineIndex(referenceLine) + 1 : 0;
+    lines.splice(index, 0, line);
+    updateLineNumbers();
+    mapLineIdToIndex();
     if (referenceLine) {
       contentEditor.insertBefore(lineDOM, referenceLine().div.nextSibling);
+      const indentLevel =
+        referenceLine().indentationLevel +
+        ((controlStartTypes as Readonly<Array<string>>).includes(
+          referenceLine().content,
+        )
+          ? 1
+          : 0);
+      line().setIndentation(indentLevel);
     } else {
       contentEditor.prepend(lineDOM);
+      line().setIndentation();
     }
     // Focus after appending to DOM (needs a bit of time to update).
     if (focus)
       requestAnimationFrame(() => {
         line({ focus: true });
       });
-    // Split from start up to and including reference line, then after reference line.
-    // Or, if no reference, just append to end.
-    const index = referenceLine ? getCurrentLineIndex(referenceLine) + 1 : 0;
-    lines = lines.slice(0, index).concat([line]).concat(lines.slice(index));
-    updateLineNumbers();
-    mapLineIdToIndex();
-    line().setIndentation();
     return line;
   }
 
@@ -412,9 +462,10 @@ function createEditor() {
   }
 
   function mapLineIdToIndex() {
-    lines.forEach((line, idx) =>
-      globalStates.lineIdToIndex.set(line().line_id, idx),
-    );
+    globalStates.lineIdToIndex.clear();
+    lines.forEach((line, idx) => {
+      globalStates.lineIdToIndex.set(line().line_id, idx);
+    });
   }
 
   /* Event listeners */
