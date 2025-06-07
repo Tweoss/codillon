@@ -1,4 +1,3 @@
-// Updated src/menu_bar.ts
 import { get_nodes } from "./lib.js";
 import { setAsBlock, setAsText } from "./block.js";
 import { AST } from "./ast.js";
@@ -53,6 +52,58 @@ template.innerHTML = `
     .file-buttons {
       display: flex;
       gap: 10px;
+    }
+    
+    /* Execution control buttons styling */
+    .left-buttons button {
+      background: #e3f2fd;
+      border-color: #1976d2;
+      color: #1976d2;
+      font-weight: 500;
+    }
+    
+    .left-buttons button:hover {
+      background: #bbdefb;
+    }
+    
+    .left-buttons button:active {
+      background: #90caf9;
+    }
+    
+    /* Stop button special styling */
+    #stop-btn {
+      background: #ffebee !important;
+      border-color: #d32f2f !important;
+      color: #d32f2f !important;
+    }
+    
+    #stop-btn:hover {
+      background: #ffcdd2 !important;
+    }
+    
+    #stop-btn:active {
+      background: #ef9a9a !important;
+    }
+    
+    /* Add emojis to execution buttons */
+    #run-btn::before {
+      content: "▶️ ";
+    }
+    
+    #step-over-btn::before {
+      content: "⏭️ ";
+    }
+    
+    #step-into-btn::before {
+      content: "⬇️ ";
+    }
+    
+    #step-out-btn::before {
+      content: "⬆️ ";
+    }
+    
+    #stop-btn::before {
+      content: "⏹️ ";
     }
   </style>
   <div id="menu-bar" class="container">
