@@ -154,6 +154,7 @@ export class AST {
 
     // TODO: don't linear search over whole document :D
     const ref = location.after;
+    const curFunction = this.get_containing_function(ref);
     for (const f of this.functions) {
       if (ref == f.span[0]) {
         if (save) f.body.unshift(instruction.result.value);

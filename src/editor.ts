@@ -537,6 +537,7 @@ function createEditor() {
   for (let i = 0; i < Math.max(10, initial_lines.length); i++) {
     last_line = addNewLine(false, last_line);
   }
+  addNewLine(false, last_line);
   for (const [i, _] of initial_lines.entries()) {
     lines[i]({ content: initial_lines[i] });
     const startLoop = 21;
@@ -544,7 +545,7 @@ function createEditor() {
     if (initial_lines[i]) {
       lines[i]().setSavedInAST(true);
     }
-    if (i == startLoop || i == endLoop || (i > 0 && i < startLoop)) {
+    if (i == startLoop || i == endLoop || i == 47 || (i > 0 && i < startLoop)) {
       lines[i]().setIndentation(1);
     } else if (i > startLoop && i < endLoop) {
       lines[i]().setIndentation(2);
