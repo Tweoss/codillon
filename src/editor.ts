@@ -639,7 +639,7 @@ function createEditor() {
             clearInterval(interval);
           }
           i++;
-          if (!hasMore) {
+          if (!hasMore || !currentExecution) {
             currentExecution = null;
             updateRunningState(false);
           }
