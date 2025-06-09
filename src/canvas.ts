@@ -49,6 +49,7 @@ function init() {
   const canvas = frag.querySelector("#plot-canvas") as HTMLCanvasElement;
   const ctx = canvas.getContext("2d")!;
   /* State variables. */
+  let point_count = 0;
 
   /* DOM update functions */
   function plotPoints(points: Array<[number, number]>) {
@@ -64,8 +65,10 @@ function init() {
     function mapY(y: number) {
       return canvas.height - ((y - minY) / (maxY - minY)) * canvas.height;
     }
-    ctx.fillStyle = "#005cc5";
+    const rotation = (1 + Math.sqrt(5)) / 2 / 100;
     for (const [x, y] of points) {
+      point_count += 1;
+      ctx.fillStyle = `hsl(${360 * ((rotation * point_count) % 1)}, 90%, 40%)`;
       ctx.beginPath();
       ctx.arc(mapX(x), mapY(y), 4, 0, 2 * Math.PI);
       ctx.fill();

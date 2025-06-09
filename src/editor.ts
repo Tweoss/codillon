@@ -40,7 +40,7 @@ template.innerHTML = `
       display: flex;
       border: 1px solid var(--border-color);
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      height: 300px;
+      height: 80vh;
       margin: 0 20px;
       overflow-y: auto;
     }
@@ -63,11 +63,22 @@ template.innerHTML = `
     .executing {
       background-color: #fff3cd;
     }
+    #divider {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    #editor-elements {
+      position:relative;
+    }
   </style>
-  <div id="editor-container">
-    <!-- wrapper div allows us to get around no background in overflow -->
-    <div><div id="line-numbers" style="width:${DEFAULTS.margin_width}px;"></div></div>
-    <div id="content-editor" style="left:${DEFAULTS.margin_width}px;"></div>
+  <div id="divider">
+    <div id="editor-elements">
+      <div id="editor-container">
+        <!-- wrapper div allows us to get around no background in overflow -->
+        <div><div id="line-numbers" style="width:${DEFAULTS.margin_width}px;"></div></div>
+        <div id="content-editor" style="left:${DEFAULTS.margin_width}px;"></div>
+      </div>
+    </div>
   </div>
 `;
 
@@ -82,15 +93,18 @@ function createEditor() {
     "line-numbers",
     "content-editor",
     "name",
+    "editor-elements",
+    "divider",
   ] as const);
   const lineNumbersContainer = nodes["line-numbers"] as HTMLDivElement;
   const contentEditor = nodes["content-editor"] as HTMLDivElement;
+  const outsideContainer = nodes["editor-elements"] as HTMLDivElement;
   const blockBank = BlockBank();
-  frag.append(blockBank);
+  outsideContainer.append(blockBank);
   const canvas = Canvas();
-  frag.append(canvas.frag);
+  nodes.divider.append(canvas.frag);
   const menuBar = MenuBar();
-  frag.prepend(menuBar.frag);
+  outsideContainer.prepend(menuBar.frag);
   const runBtn = menuBar.runBtn;
   const stepOverBtn = menuBar.stepOverBtn;
   const stepIntoBtn = menuBar.stepIntoBtn;
@@ -214,6 +228,26 @@ function createEditor() {
     return prev_line;
   }
 
+  function focusPreviousLine(currentLineId: LineID): void {
+    const currentIndex = globalStates.lineIdToIndex.get(currentLineId);
+    if (currentIndex !== undefined && currentIndex > 0) {
+      const previousLine = lines[currentIndex - 1];
+      if (previousLine) {
+        previousLine({ focus: true });
+      }
+    }
+  }
+
+  function focusNextLine(currentLineId: LineID): void {
+    const currentIndex = globalStates.lineIdToIndex.get(currentLineId);
+    if (currentIndex !== undefined && currentIndex < lines.length - 1) {
+      const nextLine = lines[currentIndex + 1];
+      if (nextLine) {
+        nextLine({ focus: true });
+      }
+    }
+  }
+
   function addFunction(startLine: Line): boolean {
     if (
       !ast.inner!.place_function(
@@ -267,6 +301,8 @@ function createEditor() {
       line_id: new_line_id(),
       deleteLine: handleBackspaceOnEmptyLine,
       getPrevLineInAST,
+      focusPreviousLine,
+      focusNextLine,
     });
     const lineDOM = line({ content: "" }).frag;
     // Split from start up to and including reference line, then after reference line.

@@ -63,6 +63,8 @@ function init({
   addControlFlow,
   deleteLine,
   getPrevLineInAST,
+  focusPreviousLine,
+  focusNextLine,
 }: {
   wrapper: { inner: AST };
   line_id: LineID;
@@ -71,6 +73,8 @@ function init({
   addControlFlow: (startLine: Line) => boolean;
   deleteLine: (ref: Line) => void;
   getPrevLineInAST: (ref: Line) => Line | null;
+  focusPreviousLine: (currentLineId: LineID) => void;
+  focusNextLine: (currentLineId: LineID) => void;
 }) {
   /* DOM variables */
   let indentationLevel = 0;
@@ -177,6 +181,12 @@ function init({
       } else {
         completionError();
       }
+    } else if (e.key === "ArrowUp" && globalStates.mode === "text") {
+      e.preventDefault();
+      focusPreviousLine(line_id);
+    } else if (e.key === "ArrowDown" && globalStates.mode === "text") {
+      e.preventDefault();
+      focusNextLine(line_id);
     }
   }
   function handleInput() {
@@ -325,8 +335,10 @@ function init({
       applySyntaxHighlighting(block.div);
       preValidState = data.content;
     }
-    if (data.focus && data.focus !== undefined)
+    if (data.focus && data.focus !== undefined) {
       setCursor(block.div, block.getContent().length);
+      lineElement.scrollIntoView({ block: "nearest" });
+    }
     if (data.saved_in_ast !== undefined) saved_in_ast = data.saved_in_ast;
     return {
       frag,
