@@ -553,7 +553,7 @@ function createEditor() {
     }
   }
 
-  const dbg = <T,>(v: T) => {
+  const dbg = <T>(v: T) => {
     console.log(v);
     return v;
   };
@@ -617,7 +617,7 @@ function createEditor() {
             clearInterval(interval);
           }
           i++;
-          if (!hasMore) {
+          if (!hasMore || !currentExecution) {
             currentExecution = null;
             updateRunningState(false);
           }
