@@ -213,6 +213,26 @@ function createEditor() {
     return prev_line;
   }
 
+  function focusPreviousLine(currentLineId: LineID): void {
+    const currentIndex = globalStates.lineIdToIndex.get(currentLineId);
+    if (currentIndex !== undefined && currentIndex > 0) {
+      const previousLine = lines[currentIndex - 1];
+      if (previousLine) {
+        previousLine({ focus: true });
+      }
+    }
+  }
+
+  function focusNextLine(currentLineId: LineID): void {
+    const currentIndex = globalStates.lineIdToIndex.get(currentLineId);
+    if (currentIndex !== undefined && currentIndex < lines.length - 1) {
+      const nextLine = lines[currentIndex + 1];
+      if (nextLine) {
+        nextLine({ focus: true });
+      }
+    }
+  }
+
   function addFunction(startLine: Line): boolean {
     if (
       !ast.inner!.place_function(
@@ -266,6 +286,8 @@ function createEditor() {
       line_id: new_line_id(),
       deleteLine: handleBackspaceOnEmptyLine,
       getPrevLineInAST,
+      focusPreviousLine,
+      focusNextLine,
     });
     const lineDOM = line({ content: "" }).frag;
     // Split from start up to and including reference line, then after reference line.
@@ -552,7 +574,7 @@ function createEditor() {
     }
   }
 
-  const dbg = <T,>(v: T) => {
+  const dbg = <T>(v: T) => {
     console.log(v);
     return v;
   };
