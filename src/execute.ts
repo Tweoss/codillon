@@ -164,7 +164,7 @@ export class Execution {
             return { body: instr.body, index: 0 };
           } else if (instr.name === "block") {
             for (let k = j + 1; k < body.length; k++) {
-              const maybeEnd = body[j];
+              const maybeEnd = body[k];
               if (
                 "line" in maybeEnd &&
                 maybeEnd.line === instr.metadata.endPos
@@ -190,7 +190,10 @@ export class Execution {
               return;
             }
             const cond = exec.stack.pop()!;
-            if (cond[1] === 0) return;
+            if (cond[1] === 0) {
+              exec.executedBranch = false;
+              return;
+            }
           }
           const context = exec.findBlockContextByLabel(instruction.label);
           if (context) {
@@ -580,7 +583,17 @@ export class Execution {
       this.currentIndex = 0;
       return this.step();
     }
-    if (instruction.name === "end") {
+
+    this.executedBranch = false;
+    this.executeInstruction(instruction);
+    if (this.afterStepCallback) {
+      this.afterStepCallback(this, instruction);
+    }
+    if (!this.executedBranch) this.currentIndex++;
+    if (
+      instruction.name === "end" ||
+      this.currentIndex >= this.currentBody.length
+    ) {
       if (this.instructionStack.length > 0) {
         const prev = this.instructionStack.pop()!;
         this.currentBody = prev.body;
@@ -590,13 +603,6 @@ export class Execution {
       this.currentIndex++;
       return true;
     }
-
-    this.executedBranch = false;
-    this.executeInstruction(instruction);
-    if (this.afterStepCallback) {
-      this.afterStepCallback(this, instruction);
-    }
-    if (!this.executedBranch) this.currentIndex++;
     this.updateStackVisualization();
     return true;
   }
