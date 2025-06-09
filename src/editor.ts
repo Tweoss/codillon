@@ -611,15 +611,14 @@ function createEditor() {
       let i = 0;
       if (currentExecution) {
         const interval = setInterval(() => {
-          const hasMore = currentExecution!.step();
-          updateRunningState(true);
-          if (currentExecution && !hasMore && i < 10000) {
+          const hasMore = currentExecution?.step();
+          if (!hasMore || !currentExecution || i > 10000) {
             clearInterval(interval);
-          }
-          i++;
-          if (!hasMore || !currentExecution) {
             currentExecution = null;
             updateRunningState(false);
+          } else {
+            updateRunningState(true);
+            i++;
           }
         }, 1);
       }
