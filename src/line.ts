@@ -332,8 +332,10 @@ function init({
       applySyntaxHighlighting(block.div);
       preValidState = data.content;
     }
-    if (data.focus && data.focus !== undefined)
+    if (data.focus && data.focus !== undefined) {
       setCursor(block.div, block.getContent().length);
+      lineElement.scrollIntoView({ block: "nearest" });
+    }
     if (data.saved_in_ast !== undefined) saved_in_ast = data.saved_in_ast;
     return {
       frag,
