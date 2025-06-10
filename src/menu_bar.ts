@@ -30,8 +30,8 @@ template.innerHTML = `
     #stack-visualization {
       display: none;
       position: absolute;
-      right: 20px;
-      top: 100px;
+      right: 430px;
+      top: 54px;
       width: 240px;
       background: #fff;
       border: 1px solid #e0e0e0;

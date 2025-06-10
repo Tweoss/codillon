@@ -4,7 +4,9 @@ const template = document.createElement("template");
 template.innerHTML = `
   <style>
     #plot-canvas-container {
-      width: 100%;
+      position: absolute;
+      right: 20px;
+      top: 56px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -13,14 +15,13 @@ template.innerHTML = `
       background: #f8fafc;
       border-radius: 14px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1.5px 4px rgba(0,0,0,0.03);
-      padding: 18px 0;
     }
     #plot-canvas {
       border: 1px solid var(--border-color);
       border-radius: 10px;
       background: linear-gradient(135deg, #fafdff 0%, #e9f1fb 100%);
       width: 400px;
-      height: 400px;
+      height: 398px;
       display: block;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       transition: box-shadow 0.2s;

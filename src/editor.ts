@@ -40,8 +40,8 @@ template.innerHTML = `
       display: flex;
       border: 1px solid var(--border-color);
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      height: 80vh;
-      margin: 0 20px;
+      height: 400px;
+      margin: 0 430px 0 20px;
       overflow-y: auto;
     }
     #line-numbers {
@@ -62,10 +62,6 @@ template.innerHTML = `
     }
     .executing {
       background-color: #fff3cd;
-    }
-    #divider {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
     }
     #editor-elements {
       position:relative;
