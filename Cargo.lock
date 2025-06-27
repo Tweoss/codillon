@@ -330,7 +330,9 @@ name = "codillon"
 version = "0.1.0"
 dependencies = [
  "getrandom 0.2.16",
+ "js-sys",
  "leptos",
+ "wasm-bindgen-futures",
  "wasm-tools",
  "wasmparser",
  "wast",

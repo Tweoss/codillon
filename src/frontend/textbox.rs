@@ -9,14 +9,22 @@ use leptos::prelude::*;
 /// ### Parameters
 /// `text` the signal for the text of this textbox
 #[component]
-pub fn Textbox(text: RwSignal<String>) -> impl IntoView {
+pub fn Textbox(
+    text: RwSignal<String>,
+    on_input: impl Fn() + 'static,
+    on_enter: impl Fn() + 'static,
+) -> impl IntoView {
     // Create a derived signal that memoizes the validation result
     let is_valid = move || is_well_formed_instr(&text.get());
     const CORRECT_EMOJI: &str = "✅";
     const INCORRECT_EMOJI: &str = "❌";
 
     view! {
-        <input type="text" bind:value=text placeholder="Enter Some Instruction" />
+        <input type="text" bind:value=text placeholder="Enter Some Instruction" on:input=move |_| {on_input()} on:keypress:target=move |ev| {
+            if ev.code() == "Enter" {
+                on_enter()
+            }
+        }/>
         {move || if is_valid() { CORRECT_EMOJI } else { INCORRECT_EMOJI }}
     }
 }

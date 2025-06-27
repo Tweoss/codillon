@@ -8,8 +8,17 @@ use leptos::prelude::*;
 pub fn Boxlist() -> impl IntoView {
     let (editor_buffer, set_editor_buffer) = signal(EditorBuffer::default());
 
+    let execute = move || {
+        editor_buffer.get().execute();
+    };
+
     // Will be triggered by the button, see below
     let push_line = move |_| {
+        set_editor_buffer.write().push_line();
+        execute();
+    };
+    // TODO: insert line at correct position on enter
+    let insert_line = move || {
         set_editor_buffer.write().push_line();
     };
 
@@ -21,6 +30,7 @@ pub fn Boxlist() -> impl IntoView {
         <div>
             <button on:click=push_line>"Add Line"</button>
             <button on:click=pop_line>"Remove Line"</button>
+            <pre><p>{move || editor_buffer.get().exec_result.0.get()}</p></pre>
             <ForEnumerate
                 each=move || editor_buffer.get().lines
                 key=|entry| entry.id
@@ -29,7 +39,7 @@ pub fn Boxlist() -> impl IntoView {
                         <br />
                         {index}
                         ": "
-                        <Textbox text=entry.value />
+                        <Textbox text=entry.value on_input=execute on_enter=insert_line/>
                     }
                 }
             />
