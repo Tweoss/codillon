@@ -71,7 +71,7 @@ function init() {
       point_count += 1;
       ctx.fillStyle = `hsl(${360 * ((rotation * point_count) % 1)}, 90%, 40%)`;
       ctx.beginPath();
-      ctx.arc(mapX(x), mapY(y), 4, 0, 2 * Math.PI);
+      ctx.arc(mapX(x), mapY(-y), 4, 0, 2 * Math.PI);
       ctx.fill();
     }
   }

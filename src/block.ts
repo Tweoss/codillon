@@ -32,35 +32,7 @@ import {
 import { globalStates } from "./global_variables.js";
 
 const template = document.createElement("template");
-template.innerHTML = `<style>
-  .block-container {
-    width: fit-content;
-		margin: 1px 0;
-		cursor: text;
-  }
-  .empty {
-    width: 100%;
-  }
-  .selected {
-    background-color: #e3f2fd;
-  }
-  .block {
-    background: linear-gradient(145deg,rgb(220, 220, 220),rgb(190, 190, 190));
-    padding: 1px 8px 3px;
-    border-radius: 4px;
-    cursor: move;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4),
-                inset 1px 1px 2px rgba(255,255,255,0.2),
-                inset -1px -1px 2px rgba(0,0,0,0.1);
-    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-    box-sizing: border-box;
-    font-weight: bold;
-  }
-  .block:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3),
-                inset 4px 4px 8px rgba(255,255,255,0.2);
-  }
-</style><div class="block-container empty" contenteditable="plaintext-only" spellcheck="false"></div>`;
+template.innerHTML = `<div class="block-container empty" contenteditable="plaintext-only" spellcheck="false"></div>`;
 
 export function setAsBlock(block: HTMLDivElement) {
   block.classList.remove("empty");
@@ -221,8 +193,8 @@ function init() {
 
   /* State update functions */
   function setContent(value: string) {
-    if (blockElement.innerText !== value) {
-      blockElement.innerText = value;
+    if (blockElement.textContent !== value) {
+      blockElement.textContent = value;
       if (value) {
         blockElement.classList.remove("empty");
       } else {
@@ -232,7 +204,7 @@ function init() {
   }
   /* State logic */
   function getContent(): string {
-    return blockElement.innerText;
+    return blockElement.textContent ?? "";
   }
   /* Event dispatchers */
 

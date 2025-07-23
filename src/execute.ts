@@ -533,7 +533,6 @@ export class Execution {
   private highlightCurrentInstruction(instruction: AllInstruction) {
     const lineId = instruction.line;
     console.log("Looking for line with ID:", lineId);
-    console.log("All lines:", document.querySelectorAll(".line"));
 
     // Add highlight to current instruction
     const currentLine = this.getLineById(lineId);

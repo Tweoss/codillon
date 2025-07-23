@@ -160,13 +160,11 @@ function createEditor() {
     "br_if $circle",
     "end",
     ")",
-    "(func",
-    "",
-    ")",
   ] as string[];
   let lines: Line[] = [];
   let ast: { inner: AST | null } = { inner: null };
   let currentExecution: Execution | null = null;
+  let last_line_count: number | null = null;
 
   /* State update functions */
   function updateRunningState(running: boolean) {
@@ -188,11 +186,25 @@ function createEditor() {
   }
 
   function updateLineNumbers(): void {
-    const lines = contentEditor.querySelectorAll(".line").length;
-    lineNumbersContainer.innerHTML = Array.from(
-      { length: lines },
-      (_, i) => i + 1,
-    ).join("<br>");
+    const line_count = lines.length;
+    last_line_count = last_line_count ?? 0;
+    let delta = line_count - last_line_count;
+    last_line_count = line_count;
+    if (delta == 0) return;
+    if (delta > 0) {
+      lineNumbersContainer.append(
+        ...Array.from({ length: delta }, (_, i) => {
+          const div = document.createElement("div");
+          div.innerText = (i + line_count).toString();
+          return div;
+        }),
+      );
+      return;
+    }
+    for (let i = 0; i < Math.abs(delta); i++) {
+      const child = lineNumbersContainer.lastChild;
+      if (child) lineNumbersContainer.removeChild(child);
+    }
   }
 
   function getCurrentLineIndex(reference: Line) {
@@ -567,25 +579,32 @@ function createEditor() {
 
   /* Initialization */
   let last_line = undefined;
-  for (let i = 0; i < Math.max(10, initial_lines.length); i++) {
+  for (let i = 0; i < Math.max(100, initial_lines.length); i++) {
     last_line = addNewLine(false, last_line);
   }
   addNewLine(false, last_line);
+  let indentation = 0;
   for (const [i, _] of initial_lines.entries()) {
     lines[i]({ content: initial_lines[i] });
-    const startLoop = 21;
-    const endLoop = 44;
     if (initial_lines[i]) {
       lines[i]().setSavedInAST(true);
     }
-    if (i == startLoop || i == endLoop || i == 47 || (i > 0 && i < startLoop)) {
-      lines[i]().setIndentation(1);
-    } else if (i > startLoop && i < endLoop) {
-      lines[i]().setIndentation(2);
+    if (initial_lines[i].indexOf(")") != -1) {
+      indentation -= 1;
+    }
+    if (initial_lines[i].indexOf("end") != -1) {
+      indentation -= 1;
+    }
+    lines[i]().setIndentation(indentation);
+    if (initial_lines[i].indexOf("(func") != -1) {
+      indentation += 1;
+    }
+    if (initial_lines[i].indexOf("loop") != -1) {
+      indentation += 1;
     }
   }
 
-  const dbg = <T>(v: T) => {
+  const dbg = <T,>(v: T) => {
     console.log(v);
     return v;
   };

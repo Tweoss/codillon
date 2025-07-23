@@ -9,47 +9,7 @@ import {
 } from "./syntax.constants.js";
 
 const template = document.createElement("template");
-template.innerHTML = `<style>
-  .line {
-    position: relative;
-    display: flex;
-    gap: 4px;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: red;
-    height: 24px;
-    background-image: linear-gradient(to right, var(--border-color) 33%, white 0%);
-    background-position: bottom;
-    background-size: 12px 1px;
-    background-repeat: repeat-x;
-    background-clip: content-box;
-    box-shadow: none;
-  }
-  .error {
-    text-decoration: underline;
-    text-decoration-color: red;
-    text-decoration-style: wavy;
-  }
-  .instruction {
-    color: #005cc5;
-    font-weight: 500;
-  }
-  .number {
-    color:rgb(230, 51, 51);
-  }
-  .datatype {
-    color: rgb(0, 158, 3);
-  }
-  .label {
-    color: #6f42c1;
-  }
-  .indent {
-    height: 24px;
-    width: 1px;
-    position: absolute;
-    background-color: var(--border-color);
-    left: 0px;
-  }
-</style><div class="line"><div class="indent"></div></div>`;
+template.innerHTML = `<div class="line"><div class="indent"></div></div>`;
 
 function clone() {
   return document.importNode(template.content, true);
